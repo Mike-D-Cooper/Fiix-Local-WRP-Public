@@ -1,9 +1,43 @@
 ﻿@page "/"
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Fiix Local WRP</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="row">
+    <div class="col-lg-4">  </div>
+    <div class="col-lg-4 text-center">
+        <div class="mb-4 mt-4">
+            <img src="images/Fiix-RA-lockup.svg" class="img-fluid" alt="App Logo" style="max-width: 400px;" />
+        </div>
+        <h4><strong>Work Request Portal</strong></h4>
+        <div class="mt-4">
+            <div class="mb-3 text-start">
+                <label for="exampleFormControlInput1" class="form-label">Name *</label>
+                <input type="text" class="form-control" idplaceholder="Enter Name" @bind="userName">
+            </div>
+        </div>
+        <button class="btn btn-warning w-100" @onclick="CheckUser">Continue</button>
+    </div>
+</div>
 
-<button class="btn btn-primary">heyhey</button>
+@code {
+    public string userName = "";
+    public void CheckUser()
+    {
+        if (userName != "")
+        {
+            var existingUser = _db.UserDetails.FirstOrDefault(x => x.Name.ToLower().Trim() == userName.ToLower().Trim());
+            if (existingUser == null)
+            {
+                _db.UserDetails.Add(new Data.UserDetail
+                {
+                    Name = userName
+                });
 
-Welcome to your new app.
+                _db.SaveChanges();                
+            }
+
+            Navigation.NavigateTo("/Requests?userName=" + userName);
+        }
+    }
+}

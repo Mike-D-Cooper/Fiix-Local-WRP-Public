@@ -1,0 +1,147 @@
+﻿@page "/Requests"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.WebUtilities
+
+<PageTitle>Requests</PageTitle>
+<div class="row">
+    <div class="col-lg-3">  </div>
+    <div class="col-lg-6">
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Search" aria-label="Search" aria-describedby="button-search">
+                    <button class="btn btn-outline-secondary" type="button" id="button-search">
+                        <i class="fa-solid fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-lg-4"></div>
+            <div class="col-lg-4 text-end">
+                <a class="btn btn-outline-dark"><i class="fa-solid fa-circle-plus"></i> New Request </a>
+            </div>
+        </div>
+        @foreach (var each in WorkOrders)
+        {
+            if (each.dtmDateCompleted.HasValue)
+            {
+                <div class="row custom-row green-left mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
+                    <div class="col-12">
+                        <div class="row">
+                            <div class="col-lg-4">
+                                <h5>Closed</h5>
+                                <p>@each.strAssets</p>
+                            </div>
+                            <div class="col-lg-8">
+                                <strong>Description</strong>
+                                <p>@each.strDescription</p>
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="row">
+                            <div class="col-lg-2">
+                                <strong>#@each.strCode</strong>
+                            </div>
+                            <div class="col-lg-2"></div>
+                            <div class="col-lg-5">
+                                Submitted On: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
+                            </div>
+                            <div class="col-lg-3">
+                                Requester: @UserName
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="row custom-row green-red mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
+                    <div class="col-12">
+                        <div class="row">
+                            <div class="col-lg-4">
+                                <h5>Open</h5>
+                                <p>@each.strAssets</p>
+                            </div>
+                            <div class="col-lg-8">
+                                <strong>Description</strong>
+                                <p>@each.strDescription</p>
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="row">
+                            <div class="col-lg-2">
+                                <strong>#@each.strCode</strong>
+                            </div>
+                            <div class="col-lg-2"></div>
+                            <div class="col-lg-5">
+                                Submittedon: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
+                            </div>
+                            <div class="col-lg-3">
+                                Requester: @UserName
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    public string UserName { get; set; }
+    public CallFiixApi FiixAPI = new CallFiixApi();
+    public List<Local_WRP.APIModels.WorkOrder.FindRequestResults.Point> WorkOrders = new List<APIModels.WorkOrder.FindRequestResults.Point>();
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (first)
+        {
+            var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userName", out var userName))
+            {
+                UserName = userName;
+                var usr = _db.UserDetails.FirstOrDefault(x => x.Name == UserName);
+                GetAPICreds();
+                if (usr != null && FiixAPI.BaseUrl != "")
+                {
+                    await GetWorkOrders(usr.Id);
+                }
+
+            }
+            StateHasChanged();
+        }
+    }
+
+    protected async Task GetWorkOrders(int userId)
+    {
+        var userWOs = _db.UserWorkOrders.Where(x => x.UserId == userId).ToList();
+        var workorderIdList = string.Join(" or ", userWOs.Select(x => "id=" + x.WorkOrderId.ToString()));
+        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" " + workorderIdList + @" ""}],""fields"":""*""}";
+
+        var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
+        @foreach(var each in userWOs)
+        {
+            var wo = workOrders.Points.Where(x => x.id == each.WorkOrderId).FirstOrDefault();
+            if(wo!= null)
+            {
+                wo.LocalWOId = each.Id;
+            }
+        }
+        WorkOrders = workOrders.Points;
+    }
+
+    protected void GetAPICreds()
+    {
+        var apiDetails = _db.TenantDetails.FirstOrDefault();
+        if (apiDetails != null)
+        {
+            FiixAPI.AppKey = apiDetails.AppKey;
+            FiixAPI.AccessKey = apiDetails.AccessKey;
+            FiixAPI.Secret = apiDetails.SecretKey;
+            FiixAPI.BaseUrl = "https://" + apiDetails.TenantName + ".macmms.com";
+        }
+    }
+
+    protected void NavToDeatils(int Id)
+    {
+        Navigation.NavigateTo("/Details?woId=" + Id);
+    }
+}

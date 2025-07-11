@@ -1,0 +1,175 @@
+﻿@page "/Details"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.WebUtilities
+
+<PageTitle>WO Details</PageTitle>
+
+<div class="row">
+    <div class="col-lg-3"></div>
+    <div class="col-lg-6" style="background-color: #f2f2f2;">
+        <h2 class="m-2">#@WorkOrder.strCode</h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-3"></div>
+    <div class="col-lg-6">
+        <h4 class="mt-4 mb-4"><strong>Work Order</strong></h4>
+        <div class="row">
+            <div class="col-lg-4">
+                <h6><strong>Item</strong></h6>
+            </div>
+            <div class="col-lg-8">
+                <h6><strong>Detail</strong></h6>
+            </div>
+            <hr />
+        </div>
+
+        @if (WorkOrder.dtmDateCompleted.HasValue)
+        {
+            <h4 class="m-3" style="border-left-color: #b5cf83; border-left: 6px solid #b5cf83;">Closed</h4>
+        }
+        else
+        {
+            <h4 class="m-3" style="border-left-color: #8c0000; border-left: 6px solid red;">Open</h4>
+        }
+        <div class="row">
+            <div class="col-lg-4">
+                <h5>Completion Notes</h5>
+            </div>
+            <div class="col-lg-8">
+                @WorkOrder.strCompletionNotes
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4">
+                <h5>Submitted On</h5>
+            </div>
+            <div class="col-lg-8">
+                @((new DateTime(1970, 01, 01)).AddMilliseconds(WorkOrder.dtmDateCreated))
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4">
+                <h5>Last Updated</h5>
+            </div>
+            <div class="col-lg-8">
+                @((new DateTime(1970, 01, 01)).AddMilliseconds(WorkOrder.dtmDateLastModified))
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4">
+                <h5>Site</h5>
+            </div>
+            <div class="col-lg-8">
+                @WorkOrder.extraFields.dv_intSiteID
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4">
+                <h5>Asset(s)</h5>
+            </div>
+            <div class="col-lg-8">
+                @WorkOrder.strAssets
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4">
+                <h5>Description</h5>
+            </div>
+            <div class="col-lg-8">
+                @WorkOrder.strDescription
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4">
+                <h5>Maintenance Type</h5>
+            </div>
+            <div class="col-lg-8">
+                @WorkOrder.extraFields.dv_intMaintenanceTypeID
+            </div>
+        </div>
+        <hr />
+        <h4 class="mt-4 mb-4"><strong>Tasks</strong></h4>
+        <div class="row">
+            <div class="col-lg-4">
+                <h6><strong>Description</strong></h6>
+            </div>
+            <div class="col-lg-8">
+                <h6><strong>Completion Notes</strong></h6>                
+            </div>
+            <hr />
+        </div>
+        @foreach(var each in WorkOrderTasks)
+        {
+            <div class="row">
+                <div class="col-lg-4">
+                    <h6>@each.strDescription</h6>
+                </div>
+                <div class="col-lg-8">
+                    @each.strTaskNotesCompletion
+                </div>
+                <hr />
+            </div>
+        }
+    </div>
+    
+</div>
+
+@code {
+    public int woId = 0;
+    public CallFiixApi FiixAPI = new CallFiixApi();    
+    public List<Local_WRP.APIModels.WorkOrderTask.FindRequestResults.Point> WorkOrderTasks = new List<APIModels.WorkOrderTask.FindRequestResults.Point>();
+    public Local_WRP.APIModels.WorkOrder.FindRequestResults.Point WorkOrder = new APIModels.WorkOrder.FindRequestResults.Point();
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (first)
+        {
+            var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("woId", out var strWoId) && int.TryParse(strWoId, out woId))
+            {                
+                GetAPICreds();
+                if (FiixAPI.BaseUrl != "")
+                {
+                    await GetWorkOrder(woId);
+                    await GetWorkOrderTasks(woId);
+                }
+
+            }
+            StateHasChanged();
+        }
+    }
+
+    protected async Task GetWorkOrderTasks(int Id)
+    {
+        var userWOs = _db.UserWorkOrders.Where(x => x.Id == Id).FirstOrDefault();
+
+        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrderTask"",""filters"":[{""ql"":""intWorkOrderID= " + userWOs.WorkOrderId + @" ""}],""fields"":""*""}";
+
+        var workOrderTasks = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrderTask.FindRequestResults>(request);
+        WorkOrderTasks = workOrderTasks.Points.OrderBy(x => x.intOrder).ToList();
+    }
+
+    protected async Task GetWorkOrder(int Id)
+    {
+        var userWOs = _db.UserWorkOrders.Where(x => x.Id == Id).FirstOrDefault();
+        
+        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" id= " + userWOs.WorkOrderId + @" ""}],""fields"":""*,dv_intMaintenanceTypeID,dv_intSiteID""}";
+
+        var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
+
+        WorkOrder = workOrders.Points.FirstOrDefault();
+    }
+
+    protected void GetAPICreds()
+    {
+        var apiDetails = _db.TenantDetails.FirstOrDefault();
+        if (apiDetails != null)
+        {
+            FiixAPI.AppKey = apiDetails.AppKey;
+            FiixAPI.AccessKey = apiDetails.AccessKey;
+            FiixAPI.Secret = apiDetails.SecretKey;
+            FiixAPI.BaseUrl = "https://" + apiDetails.TenantName + ".macmms.com";
+        }
+    }
+}

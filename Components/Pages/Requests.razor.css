@@ -1,0 +1,12 @@
+﻿.custom-row {
+    border: 1px solid #ccc; /* Default border for all sides */
+    border-left: 6px solid red; /* Thicker left border */
+}
+
+    .custom-row.green-left {
+        border-left-color: #b5cf83;
+    }
+
+    .custom-row.red-left {
+        border-left-color: #8c0000;
+    }
