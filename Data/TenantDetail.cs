@@ -7,5 +7,6 @@
         public string AccessKey { get; set; }
         public string SecretKey { get; set; }
         public string TenantName { get; set; }
+        public long? LimitToSite { get; set; }
     }
 }

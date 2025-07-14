@@ -11,32 +11,43 @@
 <div class="row justify-content-center">
     <div class="col-12 col-md-8 col-lg-6">
         <h3>Tenant Details</h3>
-        <EditForm Model="@tenantModel" OnValidSubmit="@HandleValidSubmit">
+        <EditForm Model="@tenantModel" OnValidSubmit="@HandleValidSubmit" autocomplete="off">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" />
 
             <div class="form-floating mb-3">
-                <InputText @bind-Value="tenantModel.AppKey" class="form-control" id="appKey" placeholder="App Key" />
+                <InputText @bind-Value="tenantModel.AppKey" class="form-control" id="appKey" placeholder="App Key" autocomplete="off" />
                 <label for="appKey">App Key</label>
                 <ValidationMessage For="@(() => tenantModel.AppKey)" class="text-danger" />
             </div>
 
             <div class="form-floating mb-3">
-                <InputText @bind-Value="tenantModel.AccessKey" class="form-control" id="accessKey" placeholder="Access Key" />
+                <InputText @bind-Value="tenantModel.AccessKey" class="form-control" id="accessKey" placeholder="Access Key" autocomplete="off" />
                 <label for="accessKey">Access Key</label>
                 <ValidationMessage For="@(() => tenantModel.AccessKey)" class="text-danger" />
             </div>
 
             <div class="form-floating mb-3">
-                <InputText @bind-Value="tenantModel.SecretKey" class="form-control" id="secretKey" placeholder="Secret Key" type="password" />
+                <InputText @bind-Value="tenantModel.SecretKey" class="form-control" id="secretKey" placeholder="Secret Key" type="password" autocomplete="off" />
                 <label for="secretKey">Secret Key</label>
                 <ValidationMessage For="@(() => tenantModel.SecretKey)" class="text-danger" />
             </div>
 
             <div class="form-floating mb-3">
-                <InputText @bind-Value="tenantModel.TenantName" class="form-control" id="tenantName" placeholder="Tenant Name" />
+                <InputText @bind-Value="tenantModel.TenantName" class="form-control" id="tenantName" placeholder="Tenant Name" autocomplete="off" />
                 <label for="tenantName">Tenant Name</label>
                 <ValidationMessage For="@(() => tenantModel.TenantName)" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="siteDropdown" class="form-label">Limit to Site</label>
+                <select class="form-select" id="siteDropdown" @bind="tenantModel.LimitToSite">
+                    <option value="-1">-- Select a Site --</option>
+                    @foreach (var site in Sites)
+                    {
+                        <option value="@site.Id">@site.Name (@site.Code)</option>
+                    }
+                </select>
             </div>
 
             <button type="button" @onclick="HandleValidSubmit" class="btn btn-primary w-100">Save</button>
@@ -46,10 +57,64 @@
 
 @code {
     private TenantModel tenantModel = new();
+    private CallFiixApi FiixAPI = new CallFiixApi();
+    private List<SiteDetail> Sites = new List<SiteDetail>();
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (first)
+        {
+            var currentDetails = _db.TenantDetails.FirstOrDefault();
+            if (currentDetails != null)
+            {
+                tenantModel = new TenantModel
+                {
+                    AccessKey = currentDetails.AccessKey,
+                    AppKey = currentDetails.AppKey,
+                    SecretKey = currentDetails.SecretKey,
+                    TenantName = currentDetails.TenantName
+                };
+
+                FiixAPI.AppKey = tenantModel.AppKey;
+                FiixAPI.AccessKey = tenantModel.AccessKey;
+                FiixAPI.Secret = tenantModel.SecretKey;
+                FiixAPI.BaseUrl = "https://" + tenantModel.TenantName + ".macmms.com";
+
+                await GetSiteList();
+                tenantModel.LimitToSite = currentDetails.LimitToSite;
+                tenantModel.AccessKey = currentDetails.AccessKey;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task GetSiteList()
+    {
+        var request = new APIModels.Assets.FindSitesRequest();
+        request.filters.Add(new APIModels.Assets.FindSitesRequest.Filter
+        {
+            ql = "bolIsSite = ? ",
+            parameters = new List<int> { 1 } // Fix: Initialize the List<int> directly instead of using an array.
+        });
+
+        string requestStr = JsonSerializer.Serialize(request);
+
+        var results = await FiixAPI.GetServerResponce<APIModels.Assets.FindRequestResults>(requestStr);
+        if(results != null && results.Points.Count() > 0)
+        {
+            Sites = new List<SiteDetail>();
+            Sites = results.Points.OrderBy(x => x.strName).Select(x => new SiteDetail
+                {
+                    Id = x.id,
+                    Code = x.strCode,
+                    Name = x.strName
+                }).ToList();
+        }
+    }
 
     private async Task HandleValidSubmit()
     {
-        var FiixAPI = new CallFiixApi();
+
         FiixAPI.AppKey = tenantModel.AppKey;
         FiixAPI.AccessKey = tenantModel.AccessKey;
         FiixAPI.Secret = tenantModel.SecretKey;
@@ -63,10 +128,12 @@
                 AppKey = tenantModel.AppKey,
                 AccessKey = tenantModel.AccessKey,
                 SecretKey = tenantModel.SecretKey,
-                TenantName = tenantModel.TenantName
-
+                TenantName = tenantModel.TenantName,
+                LimitToSite = tenantModel.LimitToSite == -1 ? null : tenantModel.LimitToSite
             });
             _db.SaveChanges();
+
+            await GetSiteList();
         }
         else
         {
@@ -87,5 +154,14 @@
 
         [Required(ErrorMessage = "Tenant Name is required")]
         public string TenantName { get; set; } = string.Empty;
+
+        public long? LimitToSite { get; set; }
+    }
+
+    public class SiteDetail
+    {
+        public long Id { get; set; }
+        public string Code { get; set; }
+        public string Name { get; set; }
     }
 }
