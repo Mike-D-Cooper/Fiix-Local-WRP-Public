@@ -128,7 +128,7 @@
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("woId", out var strWoId) && int.TryParse(strWoId, out woId))
             {                
-                GetAPICreds();
+                Helpers.DatabaseCommon.GetAPICreds(_db, FiixAPI);
                 if (FiixAPI.BaseUrl != "")
                 {
                     await GetWorkOrder(woId);
@@ -159,17 +159,5 @@
         var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
 
         WorkOrder = workOrders.Points.FirstOrDefault();
-    }
-
-    protected void GetAPICreds()
-    {
-        var apiDetails = _db.TenantDetails.FirstOrDefault();
-        if (apiDetails != null)
-        {
-            FiixAPI.AppKey = apiDetails.AppKey;
-            FiixAPI.AccessKey = apiDetails.AccessKey;
-            FiixAPI.Secret = apiDetails.SecretKey;
-            FiixAPI.BaseUrl = "https://" + apiDetails.TenantName + ".macmms.com";
-        }
-    }
+    }    
 }

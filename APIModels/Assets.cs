@@ -4,6 +4,29 @@ namespace Local_WRP.APIModels
 {
     public class Assets
     {
+        public class FindRequest
+        {
+            public string _maCn { get; set; } = "FindRequest";
+            public Clientversion clientVersion { get; set; } = new Clientversion();
+            public string className { get; set; } = "Asset";
+            public string fields { get; set; } = "*";
+        }
+
+        public class FindRequestWithFilter
+        {
+            public string _maCn { get; set; } = "FindRequest";
+            public Clientversion clientVersion { get; set; } = new Clientversion();
+            public string className { get; set; } = "Asset";
+            public string fields { get; set; } = "*";
+            public List<Filter> filters { get; set; } = new List<Filter>();
+
+            public class Filter
+            {
+                public string ql { get; set; }
+                public List<long> parameters { get; set; }
+            }
+        }
+
         public class FindRequestResults
         {
             public string _maCn { get; set; }
@@ -74,21 +97,7 @@ namespace Local_WRP.APIModels
                 public string strUnspcCode { get; set; }
                 public string strQuotingTerms { get; set; }
             }
-        }
-        public class FindSitesRequest
-        {
-            public string _maCn { get; set; } = "FindRequest";
-            public Clientversion clientVersion { get; set; } = new Clientversion();
-            public string className { get; set; } = "Asset";
-            public string fields { get; set; } = "*";
-            public List<Filter> filters { get; set; } = new List<Filter>();
-
-            public class Filter
-            {
-                public string ql { get; set; }
-                public List<int> parameters { get; set; }
-            }
-        }
+        }        
 
     }
 }

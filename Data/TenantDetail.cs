@@ -8,5 +8,6 @@
         public string SecretKey { get; set; }
         public string TenantName { get; set; }
         public long? LimitToSite { get; set; }
+        public string TimeZoneId { get; set; }
     }
 }

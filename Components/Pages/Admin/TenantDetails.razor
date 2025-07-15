@@ -50,6 +50,18 @@
                 </select>
             </div>
 
+            <div class="mb-3">
+                <label for="timezoneDropdown" class="form-label">Time Zone</label>
+                <select class="form-select" id="timezoneDropdown" @bind="tenantModel.TimeZoneId">
+                    <option value="">-- Select a Time Zone --</option>
+                    @foreach (var tz in TimeZones)
+                    {
+                        <option value="@tz.Id">@tz.DisplayName</option>
+                    }
+                </select>
+                <ValidationMessage For="@(() => tenantModel.TimeZoneId)" class="text-danger" />
+            </div>
+
             <button type="button" @onclick="HandleValidSubmit" class="btn btn-primary w-100">Save</button>
         </EditForm>
     </div>
@@ -58,12 +70,14 @@
 @code {
     private TenantModel tenantModel = new();
     private CallFiixApi FiixAPI = new CallFiixApi();
-    private List<SiteDetail> Sites = new List<SiteDetail>();
+    private List<Helpers.DatabaseCommon.SiteDetail> Sites = new List<Helpers.DatabaseCommon.SiteDetail>();
+    private List<TimeZoneInfo> TimeZones = new();
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (first)
         {
+            TimeZones = TimeZoneInfo.GetSystemTimeZones().ToList();
             var currentDetails = _db.TenantDetails.FirstOrDefault();
             if (currentDetails != null)
             {
@@ -72,7 +86,8 @@
                     AccessKey = currentDetails.AccessKey,
                     AppKey = currentDetails.AppKey,
                     SecretKey = currentDetails.SecretKey,
-                    TenantName = currentDetails.TenantName
+                    TenantName = currentDetails.TenantName,
+                    TimeZoneId = currentDetails.TimeZoneId
                 };
 
                 FiixAPI.AppKey = tenantModel.AppKey;
@@ -80,35 +95,11 @@
                 FiixAPI.Secret = tenantModel.SecretKey;
                 FiixAPI.BaseUrl = "https://" + tenantModel.TenantName + ".macmms.com";
 
-                await GetSiteList();
+                Sites = await Helpers.DatabaseCommon.GetSiteList(FiixAPI);
                 tenantModel.LimitToSite = currentDetails.LimitToSite;
                 tenantModel.AccessKey = currentDetails.AccessKey;
                 StateHasChanged();
             }
-        }
-    }
-
-    private async Task GetSiteList()
-    {
-        var request = new APIModels.Assets.FindSitesRequest();
-        request.filters.Add(new APIModels.Assets.FindSitesRequest.Filter
-        {
-            ql = "bolIsSite = ? ",
-            parameters = new List<int> { 1 } // Fix: Initialize the List<int> directly instead of using an array.
-        });
-
-        string requestStr = JsonSerializer.Serialize(request);
-
-        var results = await FiixAPI.GetServerResponce<APIModels.Assets.FindRequestResults>(requestStr);
-        if(results != null && results.Points.Count() > 0)
-        {
-            Sites = new List<SiteDetail>();
-            Sites = results.Points.OrderBy(x => x.strName).Select(x => new SiteDetail
-                {
-                    Id = x.id,
-                    Code = x.strCode,
-                    Name = x.strName
-                }).ToList();
         }
     }
 
@@ -129,11 +120,12 @@
                 AccessKey = tenantModel.AccessKey,
                 SecretKey = tenantModel.SecretKey,
                 TenantName = tenantModel.TenantName,
-                LimitToSite = tenantModel.LimitToSite == -1 ? null : tenantModel.LimitToSite
+                LimitToSite = tenantModel.LimitToSite == -1 ? null : tenantModel.LimitToSite,
+                TimeZoneId = tenantModel.TimeZoneId
             });
             _db.SaveChanges();
 
-            await GetSiteList();
+            Sites = await Helpers.DatabaseCommon.GetSiteList(FiixAPI);
         }
         else
         {
@@ -155,13 +147,10 @@
         [Required(ErrorMessage = "Tenant Name is required")]
         public string TenantName { get; set; } = string.Empty;
 
-        public long? LimitToSite { get; set; }
+        public long? LimitToSite { get; set; }        
+
+        public string TimeZoneId { get; set; }
     }
 
-    public class SiteDetail
-    {
-        public long Id { get; set; }
-        public string Code { get; set; }
-        public string Name { get; set; }
-    }
+    
 }
