@@ -4,6 +4,42 @@ namespace Local_WRP.APIModels
 {
     public class WorkOrder
     {
+        public class AddRequest
+        {
+            public string _maCn { get; set; } = "AddRequest";
+            public Clientversion clientVersion { get; set; } = new Clientversion();
+            public string className { get; set; } = "WorkOrder";
+            public string fields { get; set; } = "strCode, id";
+            [JsonPropertyName("object")]
+            public Point Pnt { get; set; } = new Point();
+            public class Point
+            {
+                public string className { get; set; } = "WorkOrder";
+                public long intPriorityID { get; set; }
+                public string strDescription { get; set; }
+                public long intMaintenanceTypeID { get; set; }
+                public long intWorkOrderStatusID { get; set; }
+                public long intSiteID { get; set; }
+            }
+        }
+
+        public class AddRequestResults
+        {
+            public string _maCn { get; set; }
+            [JsonPropertyName("object")]
+            public Point Points { get; set; }
+            public int count { get; set; }
+            public class Point
+            {
+                public string className { get; set; }
+                public int id { get; set; }
+                public string strCode { get; set; }
+                public bool dirty { get; set; }
+                public bool _new { get; set; }
+                public bool uideleted { get; set; }
+            }
+        }
+
         public class FindRequestResults
         {
             public string _maCn { get; set; }

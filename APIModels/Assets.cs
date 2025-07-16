@@ -37,7 +37,7 @@ namespace Local_WRP.APIModels
             public class Point
             {
                 public string className { get; set; }
-                public int id { get; set; }
+                public long id { get; set; }
                 public int bolIsBillToFacility { get; set; }
                 public int bolIsOnline { get; set; }
                 public int bolIsRegion { get; set; }

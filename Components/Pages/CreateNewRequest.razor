@@ -3,6 +3,8 @@
 @using System.ComponentModel.DataAnnotations
 @rendermode InteractiveServer
 
+<PageTitle>New Request</PageTitle>
+
 <div class="row mt-4">
     <div class="col-lg-3"></div>
     <div class="col-lg-6" style="background-color: #f2f2f2; border: 1px solid rgba(98,98,98,.12);">
@@ -13,132 +15,174 @@
     <div class="col-lg-3"></div>
     <div class="col-lg-6" style="border: 1px solid rgba(98,98,98,.12);">
         <EditForm Model="newRequestModel" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
             <div class="mb-3">
                 <label for="siteDropdown" class="form-label">Select Site</label>
-                <select class="form-select" id="siteDropdown" value="-1"
-                        @onchange="OnSiteIdChanged">
-                    <option value="-1">-- Select a Site --</option>
+                <select class="form-select" id="siteDropdown" @bind="newRequestModel.SiteId">
+                    <option value="">-- Select a Site --</option>
                     @foreach (var site in Sites)
                     {
                         <option value="@site.Id">@site.Name (@site.Code)</option>
                     }
                 </select>
             </div>
-            <div class="mb-3">
-                <label for="kindDropdown" class="form-label">Select Asset Category</label>
-                <select class="form-select" id="kindDropdown" value="@newRequestModel.Kind" @onchange="OnKindChanged">
-                    <option value="2">Equipment</option>
-                    <option value="3">Tools</option>
-                </select>
-            </div>            
-
-            @if (selectedAssetPoint != null)
+            @if (newRequestModel.SiteId.HasValue)
             {
-                <div class="mt-2 alert alert-success p-2">
-                    Selected: <strong>@selectedAssetPoint.strCode</strong> - @selectedAssetPoint.strDescription
+                @if (newRequestModel.SelectedAssetPoint != null)
+                {
+                    <div class="mb-3">
+                        <label for="kindDropdown" class="form-label">Select Asset Category</label>
+                        <select class="form-select" id="kindDropdown" value="@newRequestModel.Kind" @onchange="OnKindChanged" disabled>
+                            <option value="2">Equipment</option>
+                            <option value="3">Tools</option>
+                        </select>
+                    </div>
+
+                    <div class="mt-2 alert alert-success p-2">
+                        Selected: <strong>@newRequestModel.SelectedAssetPoint.strCode</strong> - @newRequestModel.SelectedAssetPoint.strDescription
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label for="kindDropdown" class="form-label">Select Asset Category</label>
+                        <select class="form-select" id="kindDropdown" value="@newRequestModel.Kind" @onchange="OnKindChanged">
+                            <option value="2">Equipment</option>
+                            <option value="3">Tools</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 position-relative">
+                        <label for="assetTypeahead" class="form-label">Find Asset</label>
+                        <input type="text"
+                               class="form-control"
+                               id="assetTypeahead"
+                               placeholder="Type asset code or description"
+                               @bind="assetSearchText"
+                               @bind:event="oninput"
+                               autocomplete="off" />
+
+                        @if (!string.IsNullOrWhiteSpace(assetSearchText) && filteredAssetPoints.Count > 0)
+                        {
+                            <ul class="list-group position-absolute w-100" style="z-index: 1000;">
+                                @foreach (var asset in filteredAssetPoints)
+                                {
+                                    <li class="list-group-item list-group-item-action"
+                                        style="cursor:pointer"
+                                        @onclick="() => SelectAssetPoint(asset)">
+                                        <strong>@asset.strCode</strong> - @asset.strDescription
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        <ValidationMessage For="@(() => newRequestModel.SelectedAssetPoint)" class="text-danger" />
+                    </div>
+                }
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="mb-3">
+                            <label for="maintTypeDropdown" class="form-label">Select a Maintenance Type</label>
+                            <select class="form-select" id="maintTypeDropdown" @bind="newRequestModel.MaintTypeId">
+                                @foreach (var each in MaintTypes)
+                                {
+                                    <option value="@each.id">@each.strName</option>
+                                }
+
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="mb-3">
+                            <label for="priorityDropdown" class="form-label">Select a Priority</label>
+                            <select class="form-select" id="priorityDropdown" @bind="newRequestModel.PriorityId">
+                                @foreach (var each in Priorities)
+                                {
+                                    <option value="@each.id">@each.strName</option>
+                                }
+
+                            </select>
+                        </div>
+                    </div>
                 </div>
-            }
-            else
-            {
-                <div class="mb-3 position-relative">
-                    <label for="assetTypeahead" class="form-label">Find Asset</label>
-                    <input type="text"
-                           class="form-control"
-                           id="assetTypeahead"
-                           placeholder="Type asset code or description"
-                           @bind="assetSearchText"
-                           @bind:event="oninput"
-                           autocomplete="off" />
 
-                    @if (!string.IsNullOrWhiteSpace(assetSearchText) && filteredAssetPoints.Count > 0)
-                    {
-                        <ul class="list-group position-absolute w-100" style="z-index: 1000;">
-                            @foreach (var asset in filteredAssetPoints)
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" rows="4" placeholder="Enter work request description" @bind="newRequestModel.Description"></textarea>
+                    <ValidationMessage For="@(() => newRequestModel.Description)" class="text-danger" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="imageUpload" class="form-label">Upload Images</label>
+                    <InputFile id="imageUpload" OnChange="OnImagesSelected" multiple accept="image/*" class="form-control" />
+                </div>
+
+                @if (UploadedImages.Count > 0)
+                {
+                    <div id="imageCarousel" class="carousel slide mb-3" data-bs-ride="carousel">
+                        <div class="carousel-indicators">
+                            @for (int i = 0; i < UploadedImages.Count; i++)
                             {
-                                <li class="list-group-item list-group-item-action"
-                                    style="cursor:pointer"
-                                    @onclick="() => SelectAssetPoint(asset)">
-                                    <strong>@asset.strCode</strong> - @asset.strDescription
-                                </li>
+                                <button type="button"
+                                        data-bs-target="#imageCarousel"
+                                        data-bs-slide-to="@i"
+                                        class="@(i == 0 ? "active" : "")"
+                                        aria-current="@(i == 0 ? "true" : "false")"
+                                        aria-label="Slide @(i + 1)">
+                                </button>
                             }
-                        </ul>
-                    }
-                </div>
+                        </div>
+                        <div class="carousel-inner">
+                            @for (int i = 0; i < UploadedImages.Count; i++)
+                            {
+                                <div class="carousel-item @(i == 0 ? "active" : "")">
+                                    <img src="@UploadedImages[i]" class="d-block w-100" alt="Uploaded Image @(i + 1)" style="max-height:400px;object-fit:contain;" />
+                                </div>
+                            }
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev" style="filter: invert(100%);">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next" style="filter: invert(100%);">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                }
+
+                <button type="submit" class="btn btn-primary w-100">Submit</button>
             }
 
-            <div class="mb-3">
-                <label for="maintTypeDropdown" class="form-label">Select a Maintenance Type</label>
-                <select class="form-select" id="maintTypeDropdown" @bind="newRequestModel.MaintTypeId">
-                    @foreach(var each in MaintTypes)
-                    {
-                        <option value="@each.id">@each.strName</option>
-                    }
-
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea class="form-control" id="description" rows="4" placeholder="Enter work request description"
-                          @bind="newRequestModel.Description"></textarea>
-                <ValidationMessage For="@(() => newRequestModel.Description)" class="text-danger" />
-            </div>
-
-            <div class="mb-3">
-                <label for="imageUpload" class="form-label">Upload Images</label>
-                <InputFile id="imageUpload" OnChange="OnImagesSelected" multiple accept="image/*" class="form-control" />
-            </div>
-
-            @if (UploadedImages.Count > 0)
-            {
-                <div id="imageCarousel" class="carousel slide mb-3" data-bs-ride="carousel">
-                    <div class="carousel-indicators">
-                        @for (int i = 0; i < UploadedImages.Count; i++)
-                        {
-                            <button type="button"
-                                    data-bs-target="#imageCarousel"
-                                    data-bs-slide-to="@i"
-                                    class="@(i == 0 ? "active" : "")"
-                                    aria-current="@(i == 0 ? "true" : "false")"
-                                    aria-label="Slide @(i + 1)">
-                            </button>
-                        }
-                    </div>
-                    <div class="carousel-inner">
-                        @for (int i = 0; i < UploadedImages.Count; i++)
-                        {
-                            <div class="carousel-item @(i == 0 ? "active" : "")">
-                                <img src="@UploadedImages[i]" class="d-block w-100" alt="Uploaded Image @(i + 1)" style="max-height:400px;object-fit:contain;" />
-                            </div>
-                        }
-                    </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev" style="filter: invert(100%);">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Previous</span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next" style="filter: invert(100%);">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Next</span>
-                    </button>
-                </div>
-            }
-
-            <button type="submit" class="btn btn-primary w-100">Submit</button>
         </EditForm>
     </div>
 </div>
 
+@if (IsSubmitting)
+{
+    <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(255,255,255,0.6);z-index:2000;">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Uploading content and creating work order...</span>
+        </div>
+    </div>
+}
+
 @code {
-    public CallFiixApi FiixAPI = new CallFiixApi();
-    public string UserName { get; set; }
+    public CallFiixApi FiixAPI = new CallFiixApi();    
+    public Local_WRP.Data.UserDetail UserInfo = new();
     private List<Helpers.DatabaseCommon.SiteDetail> Sites = new List<Helpers.DatabaseCommon.SiteDetail>();
     private NewRequestModel newRequestModel = new NewRequestModel();
     private List<APIModels.Assets.FindRequestResults.Point> AssetPoints = new();
     private List<APIModels.MaintenanceType.FindRequestResults.Point> MaintTypes = new();
+    private List<APIModels.Priority.FindRequestResults.Point> Priorities = new();
     private List<string> UploadedImages = new();
+    private List<IBrowserFile> SelectedFiles = new();
+    private bool IsSubmitting = false;
 
     private string assetSearchText = "";
-    private APIModels.Assets.FindRequestResults.Point? selectedAssetPoint;
+
     private List<APIModels.Assets.FindRequestResults.Point> filteredAssetPoints =>
         string.IsNullOrWhiteSpace(assetSearchText)
             ? new List<APIModels.Assets.FindRequestResults.Point>()
@@ -156,10 +200,16 @@
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userName", out var userName))
             {
+                newRequestModel.OnSiteIdChanged = async (siteId) => await OnSiteIdChanged(siteId);
                 Helpers.DatabaseCommon.GetAPICreds(_db, FiixAPI);
                 Sites = await Helpers.DatabaseCommon.GetSiteList(FiixAPI);
                 await GetAssets();
                 await GetMaintTypes();
+                await GetPriorities();
+                await GetWorkOrderStatus();
+
+                string UserName = userName;
+                UserInfo = _db.UserDetails.FirstOrDefault(x => x.Name.ToUpper() == UserName.ToUpper());
 
                 var LimitToSite = Helpers.DatabaseCommon.CheckIfSitesAreLimited(_db);
                 if (LimitToSite.HasValue)
@@ -178,23 +228,108 @@
 
     private async Task HandleSubmit()
     {
+        IsSubmitting = true;
+        await CreateNewWorkOrder();
+
         // Use SelectedSiteId as needed
         await JS.InvokeVoidAsync("alert", $"Thank you, come again!!");
-        Navigation.NavigateTo("/");
+        Navigation.NavigateTo("/Requests?userName=" + UserInfo.Name);
+        IsSubmitting = false;
+    }
+
+    private async Task CreateNewWorkOrder()
+    {
+        var request = new APIModels.WorkOrder.AddRequest();
+        request.Pnt = new APIModels.WorkOrder.AddRequest.Point
+        {
+            intMaintenanceTypeID = newRequestModel.MaintTypeId.Value,
+            intPriorityID = newRequestModel.PriorityId.Value,
+            intSiteID = newRequestModel.SelectedAssetPoint.intSiteID,
+            intWorkOrderStatusID = newRequestModel.WOStatusId.Value,
+            strDescription = newRequestModel.Description
+        };
+
+        string test = JsonSerializer.Serialize(request);
+
+        var responce = await FiixAPI.GetServerResponce<APIModels.WorkOrder.AddRequestResults>(request);
+        if (responce != null)
+        {
+            await AddAssetToWorkOrder(responce.Points.id, newRequestModel.SelectedAssetPoint);
+            await AddImagesToWorkOrder(responce.Points.id);
+
+            _db.UserWorkOrders.Add(new Data.UserWorkOrders
+            {
+                CreatedDate = DateTime.UtcNow,
+                UserId = UserInfo.Id,
+                WorkOrderId = responce.Points.id
+            });
+
+            _db.SaveChanges();
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "Could not create the workorder sorry, please check your selections and API keys");
+        }
+    }
+
+    private async Task AddAssetToWorkOrder(long WorkorderId, APIModels.Assets.FindRequestResults.Point Asset)
+    {
+        var request = new APIModels.WorkOrderAsset.AddRequest();
+        request.Pnt = new APIModels.WorkOrderAsset.AddRequest.Point
+        {
+            intAssetID = Asset.id,
+            intWorkOrderID = WorkorderId
+        };
+
+        string responce = await FiixAPI.GetServerResponce(JsonSerializer.Serialize(request));
+
+        if (responce.Contains("error"))
+        {
+            await JS.InvokeVoidAsync("alert", responce);
+        }
+    }
+
+    private async Task AddImagesToWorkOrder(long workOrderId)
+    {
+        foreach (var file in SelectedFiles)
+        {
+            // Prepare file description
+            var fileDesc = new CallFiixApi.FileUploadDescription
+            {
+                sourceInfo = "WORK_ORDER_INFO",
+                sourceIdString = workOrderId.ToString(),
+                fieldName = "file1"
+            };
+
+            // Prepare file stream content
+            var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            var streamContent = new StreamContent(stream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
+            // Call the upload method
+            await FiixAPI.PostFileUpload(
+                file.Name,
+                new List<CallFiixApi.FileUploadDescription> { fileDesc },
+                streamContent,
+                file.ContentType
+            );
+        }
     }
 
     private void SelectAssetPoint(APIModels.Assets.FindRequestResults.Point asset)
     {
-        selectedAssetPoint = asset;
+        newRequestModel.SelectedAssetPoint = asset;
         assetSearchText = asset.strCode;
     }
 
-    private async Task OnSiteIdChanged(ChangeEventArgs e)
+    private async Task OnSiteIdChanged(long? siteId)
     {
-
-        if (long.TryParse(e.Value.ToString(), out long siteId))
+        if (siteId == null)
         {
-            newRequestModel.SiteId = siteId;
+            AssetPoints = new();
+        }
+        else
+        {
             await GetAssets();
         }
     }
@@ -208,18 +343,18 @@
             await GetAssets();
         }
     }
-   
+
     private async Task GetAssets()
     {
         AssetPoints = new();
 
         var request = new APIModels.Assets.FindRequestWithFilter();
-        if(newRequestModel.SiteId != -1)
+        if (newRequestModel.SiteId.HasValue)
         {
             request.filters.Add(new APIModels.Assets.FindRequestWithFilter.Filter
             {
                 ql = "intKind = ? and intSiteID = ?",
-                parameters = new List<long> { newRequestModel.Kind, newRequestModel.SiteId } // Fix: Initialize the List<int> directly instead of using an array.
+                parameters = new List<long> { newRequestModel.Kind, newRequestModel.SiteId.Value } // Fix: Initialize the List<int> directly instead of using an array.
             });
         }
         else
@@ -234,7 +369,7 @@
         var responce = await FiixAPI.GetServerResponce<APIModels.Assets.FindRequestResults>(request);
         if (responce != null)
         {
-            AssetPoints = responce.Points.OrderBy(x => x.strCode).ToList();            
+            AssetPoints = responce.Points.OrderBy(x => x.strCode).ToList();
         }
     }
 
@@ -245,19 +380,57 @@
 
         var responce = await FiixAPI.GetServerResponce<APIModels.MaintenanceType.FindRequestResults>(request);
 
-        if(responce!= null)
+        if (responce != null)
         {
-            MaintTypes = responce.Points.OrderBy(x=> x.strName).ToList();
+            MaintTypes = responce.Points.OrderBy(x => x.strName).ToList();
             newRequestModel.MaintTypeId = MaintTypes.FirstOrDefault().id;
         }
+    }
 
+    private async Task GetPriorities()
+    {
+        var request = new APIModels.General.FindRequest();
+        request.className = "Priority";
+
+        var responce = await FiixAPI.GetServerResponce<APIModels.Priority.FindRequestResults>(request);
+
+        if (responce != null)
+        {
+            Priorities = responce.Points.OrderByDescending(x => x.intOrder).ToList();
+            newRequestModel.PriorityId = Priorities.FirstOrDefault().id;
+        }
+    }
+
+    private async Task GetWorkOrderStatus()
+    {
+        var request = new APIModels.General.FindRequest();
+        request.className = "WorkOrderStatus";
+
+        var responce = await FiixAPI.GetServerResponce<APIModels.WOStatus.FindRequestResults>(request);
+
+        if (responce != null)
+        {
+            var statusId = responce.Points.Where(x => x.strName.ToUpper().Contains("REQUESTED")).FirstOrDefault();
+
+            if (statusId != null)
+            {
+                newRequestModel.WOStatusId = statusId.id;
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Error finding the workorder status 'Requested', please verify this status exists in the CMMS settings lookup tables.");
+            }
+        }
     }
 
     private async Task OnImagesSelected(InputFileChangeEventArgs e)
     {
         UploadedImages.Clear();
+        SelectedFiles.Clear();
         foreach (var file in e.GetMultipleFiles())
         {
+            SelectedFiles.Add(file);
+
             using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit per image
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
@@ -265,15 +438,34 @@
             var imageDataUrl = $"data:{file.ContentType};base64,{base64}";
             UploadedImages.Add(imageDataUrl);
         }
-    }
+    }   
 
     public class NewRequestModel
     {
+        private long? _siteId;
         [Required(ErrorMessage = "Select a site")]
-        public long SiteId { get; set; } = -1;
+        public long? SiteId
+        {
+            get => _siteId;
+            set
+            {
+                if (_siteId != value)
+                {
+                    _siteId = value;
+                    OnSiteIdChanged?.Invoke(value);
+                }
+            }
+        }
+
+        public Action<long?> OnSiteIdChanged { get; set; }
+
         public int Kind { get; set; } = 2;
         [Required(ErrorMessage = "Please enter a description")]
         public string Description { get; set; }
-        public long MaintTypeId { get; set; }
+        public long? MaintTypeId { get; set; }
+        public long? PriorityId { get; set; }
+        public long? WOStatusId { get; set; }
+        [Required(ErrorMessage = "Please enter and select an asset")]
+        public APIModels.Assets.FindRequestResults.Point SelectedAssetPoint { get; set; }
     }
 }
