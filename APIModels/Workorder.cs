@@ -20,6 +20,8 @@ namespace Local_WRP.APIModels
                 public long intMaintenanceTypeID { get; set; }
                 public long intWorkOrderStatusID { get; set; }
                 public long intSiteID { get; set; }
+                public string strNameUserGuest { get; set; }
+                public long intRequestedByUserID { get; set; }
             }
         }
 

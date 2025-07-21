@@ -113,19 +113,23 @@
     protected async Task GetWorkOrders(int userId)
     {
         var userWOs = _db.UserWorkOrders.Where(x => x.UserId == userId).ToList();
-        var workorderIdList = string.Join(" or ", userWOs.Select(x => "id=" + x.WorkOrderId.ToString()));
-        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" " + workorderIdList + @" ""}],""fields"":""*""}";
-
-        var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
-        @foreach (var each in userWOs)
+        if(userWOs!= null && userWOs.Count() > 0)
         {
-            var wo = workOrders.Points.Where(x => x.id == each.WorkOrderId).FirstOrDefault();
-            if (wo != null)
+            var workorderIdList = string.Join(" or ", userWOs.Select(x => "id=" + x.WorkOrderId.ToString()));
+            string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" " + workorderIdList + @" ""}],""fields"":""*""}";
+
+            var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
+            @foreach (var each in userWOs)
             {
-                wo.LocalWOId = each.Id;
+                var wo = workOrders.Points.Where(x => x.id == each.WorkOrderId).FirstOrDefault();
+                if (wo != null)
+                {
+                    wo.LocalWOId = each.Id;
+                }
             }
+            WorkOrders = workOrders.Points.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(50).ToList();
         }
-        WorkOrders = workOrders.Points.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(50).ToList();
+        
     }
 
     protected void NavToDeatils(int Id)

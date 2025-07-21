@@ -177,6 +177,8 @@
     private List<APIModels.Assets.FindRequestResults.Point> AssetPoints = new();
     private List<APIModels.MaintenanceType.FindRequestResults.Point> MaintTypes = new();
     private List<APIModels.Priority.FindRequestResults.Point> Priorities = new();
+    private APIModels.User.FindRequestResults.Point GuestUser = new APIModels.User.FindRequestResults.Point();
+
     private List<string> UploadedImages = new();
     private List<IBrowserFile> SelectedFiles = new();
     private bool IsSubmitting = false;
@@ -207,6 +209,7 @@
                 await GetMaintTypes();
                 await GetPriorities();
                 await GetWorkOrderStatus();
+                await GetGuestUser();
 
                 string UserName = userName;
                 UserInfo = _db.UserDetails.FirstOrDefault(x => x.Name.ToUpper() == UserName.ToUpper());
@@ -241,13 +244,15 @@
     {
         var request = new APIModels.WorkOrder.AddRequest();
         request.Pnt = new APIModels.WorkOrder.AddRequest.Point
-        {
-            intMaintenanceTypeID = newRequestModel.MaintTypeId.Value,
-            intPriorityID = newRequestModel.PriorityId.Value,
-            intSiteID = newRequestModel.SelectedAssetPoint.intSiteID,
-            intWorkOrderStatusID = newRequestModel.WOStatusId.Value,
-            strDescription = newRequestModel.Description
-        };
+            {
+                intMaintenanceTypeID = newRequestModel.MaintTypeId.Value,
+                intPriorityID = newRequestModel.PriorityId.Value,
+                intSiteID = newRequestModel.SelectedAssetPoint.intSiteID,
+                intWorkOrderStatusID = newRequestModel.WOStatusId.Value,
+                strDescription = newRequestModel.Description,
+                intRequestedByUserID = GuestUser.id,
+                strNameUserGuest = UserInfo.Name
+            };
 
         string test = JsonSerializer.Serialize(request);
 
@@ -419,6 +424,28 @@
             else
             {
                 await JS.InvokeVoidAsync("alert", "Error finding the workorder status 'Requested', please verify this status exists in the CMMS settings lookup tables.");
+            }
+        }
+    }
+
+    private async Task GetGuestUser()
+    {
+        var request = new APIModels.General.FindRequest();
+        request.className = "User";
+
+        var responce = await FiixAPI.GetServerResponce<APIModels.User.FindRequestResults>(request);        
+
+        if (responce != null)
+        {
+            var guestUser = responce.Points.Where(x => x.strFullName.ToUpper() == "GUEST").FirstOrDefault();
+
+            if (guestUser != null)
+            {
+                GuestUser = guestUser;
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Error finding the user \"Guest\", please verify this user exists.");
             }
         }
     }
