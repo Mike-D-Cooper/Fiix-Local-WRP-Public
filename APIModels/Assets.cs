@@ -52,7 +52,7 @@ namespace Local_WRP.APIModels
                 public int intChargeDepartmentID { get; set; }
                 public int intCountryID { get; set; }
                 public int intKind { get; set; }
-                public int intSiteID { get; set; }
+                public long intSiteID { get; set; }
                 public int intSuperCategorySysCode { get; set; }
                 public object intUpdated { get; set; }
                 public double qtyStockCount { get; set; }

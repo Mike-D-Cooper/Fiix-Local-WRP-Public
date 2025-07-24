@@ -26,6 +26,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="wwwroot\js\qrinterop.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="AppDb.db">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>

@@ -17,15 +17,30 @@
         <EditForm Model="newRequestModel" OnValidSubmit="HandleSubmit">
             <DataAnnotationsValidator />
             <ValidationSummary />
-            <div class="mb-3">
-                <label for="siteDropdown" class="form-label">Select Site</label>
-                <select class="form-select" id="siteDropdown" @bind="newRequestModel.SiteId">
-                    <option value="">-- Select a Site --</option>
-                    @foreach (var site in Sites)
-                    {
-                        <option value="@site.Id">@site.Name (@site.Code)</option>
-                    }
-                </select>
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="mb-3">
+                        <label for="siteDropdown" class="form-label">Select Site</label>
+                        <select class="form-select" id="siteDropdown" @bind="newRequestModel.SiteId">
+                            <option value="">-- Select a Site --</option>
+                            @foreach (var site in Sites)
+                            {
+                                <option value="@site.Id">@site.Name (@site.Code)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                @if (!newRequestModel.SiteId.HasValue)
+                {
+                    <div class="col-lg-4 ">
+                        <div class="mb-3 text-lg-end">
+                            <label class="form-label">Scan Asset QR Code</label>
+                            <div id="qr-reader" style="width: 300px"></div>
+                            <button type="button" class="btn btn-outline-secondary w-100" @onclick="StartQrScan">Scan QR Code - <i class="fa-solid fa-camera-retro"></i></button>
+                        </div>
+                    </div>
+                }
+                
             </div>
             @if (newRequestModel.SiteId.HasValue)
             {
@@ -40,7 +55,7 @@
                     </div>
 
                     <div class="mt-2 alert alert-success p-2">
-                        Selected: <strong>@newRequestModel.SelectedAssetPoint.strCode</strong> - @newRequestModel.SelectedAssetPoint.strDescription
+                        Selected: <strong>@newRequestModel.SelectedAssetPoint.strCode</strong> - @newRequestModel.SelectedAssetPoint.strName
                     </div>
                 }
                 else
@@ -71,7 +86,7 @@
                                     <li class="list-group-item list-group-item-action"
                                         style="cursor:pointer"
                                         @onclick="() => SelectAssetPoint(asset)">
-                                        <strong>@asset.strCode</strong> - @asset.strDescription
+                                        <strong>@asset.strCode</strong> - @asset.strName
                                     </li>
                                 }
                             </ul>
@@ -170,7 +185,7 @@
 }
 
 @code {
-    public CallFiixApi FiixAPI = new CallFiixApi();    
+    public CallFiixApi FiixAPI = new CallFiixApi();
     public Local_WRP.Data.UserDetail UserInfo = new();
     private List<Helpers.DatabaseCommon.SiteDetail> Sites = new List<Helpers.DatabaseCommon.SiteDetail>();
     private NewRequestModel newRequestModel = new NewRequestModel();
@@ -244,15 +259,15 @@
     {
         var request = new APIModels.WorkOrder.AddRequest();
         request.Pnt = new APIModels.WorkOrder.AddRequest.Point
-            {
-                intMaintenanceTypeID = newRequestModel.MaintTypeId.Value,
-                intPriorityID = newRequestModel.PriorityId.Value,
-                intSiteID = newRequestModel.SelectedAssetPoint.intSiteID,
-                intWorkOrderStatusID = newRequestModel.WOStatusId.Value,
-                strDescription = newRequestModel.Description,
-                intRequestedByUserID = GuestUser.id,
-                strNameUserGuest = UserInfo.Name
-            };
+        {
+            intMaintenanceTypeID = newRequestModel.MaintTypeId.Value,
+            intPriorityID = newRequestModel.PriorityId.Value,
+            intSiteID = newRequestModel.SelectedAssetPoint.intSiteID,
+            intWorkOrderStatusID = newRequestModel.WOStatusId.Value,
+            strDescription = newRequestModel.Description,
+            intRequestedByUserID = GuestUser.id,
+            strNameUserGuest = UserInfo.Name
+        };
 
         string test = JsonSerializer.Serialize(request);
 
@@ -433,7 +448,7 @@
         var request = new APIModels.General.FindRequest();
         request.className = "User";
 
-        var responce = await FiixAPI.GetServerResponce<APIModels.User.FindRequestResults>(request);        
+        var responce = await FiixAPI.GetServerResponce<APIModels.User.FindRequestResults>(request);
 
         if (responce != null)
         {
@@ -465,7 +480,41 @@
             var imageDataUrl = $"data:{file.ContentType};base64,{base64}";
             UploadedImages.Add(imageDataUrl);
         }
-    }   
+    }
+
+    private async Task StartQrScan()
+    {
+        await JS.InvokeVoidAsync("qrScanner.start", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable]
+    public async Task OnQrCodeScanned(string code)
+    {
+        if (code.Contains("a="))
+        {
+            var splitUrl = code.Split("a=");
+            if (splitUrl.Length == 2)
+            {
+                var selectedAsset = AssetPoints.FirstOrDefault(x => x.id.ToString() == splitUrl[1]);
+                if (selectedAsset != null)
+                {
+                    SelectAssetPoint(selectedAsset);
+                    newRequestModel.SiteId = selectedAsset.intSiteID;
+                    newRequestModel.Kind = selectedAsset.intKind;
+                }
+                else
+                {
+                    await JS.InvokeVoidAsync("alert", "I could not find that asset, please check your QR code.  -  " + code);
+                }
+            }
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "I could not find that asset, please check your QR code.  -  " + code);
+        }
+
+        StateHasChanged();
+    }
 
     public class NewRequestModel
     {
