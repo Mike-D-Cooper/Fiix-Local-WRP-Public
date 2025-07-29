@@ -3,6 +3,7 @@ using System;
 using Local_WRP.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LocalWRP.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250728192026_AddedLanguageToUserDetails")]
+    partial class AddedLanguageToUserDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
@@ -93,9 +96,6 @@ namespace LocalWRP.Migrations
                     b.Property<string>("AppKey")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Language")
-                        .HasColumnType("TEXT");
-
                     b.Property<long?>("LimitToSite")
                         .HasColumnType("INTEGER");
 
@@ -111,32 +111,6 @@ namespace LocalWRP.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("TenantDetails");
-                });
-
-            modelBuilder.Entity("Local_WRP.Data.Translation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedDateUTC")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FromLanguage")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FromPhrase")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ToLanguage")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ToPhrase")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Translations");
                 });
 
             modelBuilder.Entity("Local_WRP.Data.UserDetail", b =>

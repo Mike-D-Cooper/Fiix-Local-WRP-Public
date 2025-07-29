@@ -1,6 +1,7 @@
 ﻿@page "/Requests"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.WebUtilities
+@inject AzureTranslatorService Translator
 
 <PageTitle>Requests</PageTitle>
 <div class="row">
@@ -9,15 +10,23 @@
         <div class="row">
             <div class="col-lg-4">
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="Search" aria-label="Search" aria-describedby="button-search">
+                    <input type="text" class="form-control" placeholder="@UIText.Search" aria-label="Search" aria-describedby="button-search">
                     <button class="btn btn-outline-secondary" type="button" id="button-search">
                         <i class="fa-solid fa-search"></i>
                     </button>
                 </div>
             </div>
-            <div class="col-lg-4"></div>
+            <div class="col-lg-4">
+                <select class="form-select" value="@SelectedLanguage" @onchange="OnLanguageChanged">
+                    <option value="">-- Select Language --</option>
+                    @foreach (var lang in AzureTranslatorLanguages.SupportedLanguages)
+                    {
+                        <option value="@lang.Key">@lang.Value</option>
+                    }
+                </select>
+            </div>
             <div class="col-lg-4 text-end">
-                <a class="btn btn-outline-dark" href="/CreateNewRequest?userName=@UserName"><i class="fa-solid fa-circle-plus"></i> New Request </a>
+                <a class="btn btn-outline-dark" href="/CreateNewRequest?userName=@UserName"><i class="fa-solid fa-circle-plus"></i> @UIText.NewRequest </a>
             </div>
         </div>
         @foreach (var each in WorkOrders)
@@ -28,11 +37,11 @@
                     <div class="col-12">
                         <div class="row">
                             <div class="col-lg-4">
-                                <h5>Closed</h5>
+                                <h5>@UIText.Closed</h5>
                                 <p>@each.strAssets</p>
                             </div>
                             <div class="col-lg-8">
-                                <strong>Description</strong>
+                                <strong>@UIText.Description</strong>
                                 <p>@each.strDescription</p>
                             </div>
                         </div>
@@ -43,10 +52,10 @@
                             </div>
                             <div class="col-lg-2"></div>
                             <div class="col-lg-5">
-                                Submitted On: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
+                                @UIText.SubmittedOn: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
                             </div>
                             <div class="col-lg-3">
-                                Requester: @UserName
+                                @UIText.RequestedBy: @UserName
                             </div>
                         </div>
                     </div>
@@ -58,11 +67,11 @@
                     <div class="col-12">
                         <div class="row">
                             <div class="col-lg-4">
-                                <h5>Open</h5>
+                                <h5>@UIText.Open</h5>
                                 <p>@each.strAssets</p>
                             </div>
                             <div class="col-lg-8">
-                                <strong>Description</strong>
+                                <strong>@UIText.Description</strong>
                                 <p>@each.strDescription</p>
                             </div>
                         </div>
@@ -73,10 +82,10 @@
                             </div>
                             <div class="col-lg-2"></div>
                             <div class="col-lg-5">
-                                Submitted On: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
+                                @UIText.SubmittedOn: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
                             </div>
                             <div class="col-lg-3">
-                                Requester: @UserName
+                                @UIText.RequestedBy: @UserName
                             </div>
                         </div>
                     </div>
@@ -87,18 +96,30 @@
 </div>
 
 @code {
+    public Data.TenantDetail TenantDetail { get; set; }
     public string UserName { get; set; }
+    private Data.UserDetail SelectedUser = new();
     public CallFiixApi FiixAPI = new CallFiixApi();
     public List<Local_WRP.APIModels.WorkOrder.FindRequestResults.Point> WorkOrders = new List<APIModels.WorkOrder.FindRequestResults.Point>();
+    private string SelectedLanguage;
+
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (first)
         {
+            TenantDetail = _db.TenantDetails.FirstOrDefault();
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userName", out var userName))
             {
                 UserName = userName;
                 var usr = _db.UserDetails.FirstOrDefault(x => x.Name == UserName);
+                if (usr != null)
+                {
+                    SelectedUser = usr;
+                    SelectedLanguage = usr.Language; // Preselect user's language
+                    UIText = await Translator.TranslateUIElements<ElementText>(UIText, SelectedLanguage);
+                }
+
                 Helpers.DatabaseCommon.GetAPICreds(_db, FiixAPI);
                 if (usr != null && FiixAPI.BaseUrl != "")
                 {
@@ -110,10 +131,25 @@
         }
     }
 
+    private async Task OnLanguageChanged(ChangeEventArgs e)
+    {
+        SelectedLanguage = e.Value?.ToString();
+        var usr = _db.UserDetails.FirstOrDefault(x => x.Name == UserName);
+        if (usr != null)
+        {
+            usr.Language = SelectedLanguage;
+            _db.UserDetails.Update(usr);
+            await _db.SaveChangesAsync();
+
+            await GetWorkOrders(SelectedUser.Id);
+            UIText = await Translator.TranslateUIElements<ElementText>(UIText, SelectedLanguage);
+        }
+    }
+
     protected async Task GetWorkOrders(int userId)
     {
         var userWOs = _db.UserWorkOrders.Where(x => x.UserId == userId).ToList();
-        if(userWOs!= null && userWOs.Count() > 0)
+        if (userWOs != null && userWOs.Count() > 0)
         {
             var workorderIdList = string.Join(" or ", userWOs.Select(x => "id=" + x.WorkOrderId.ToString()));
             string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" " + workorderIdList + @" ""}],""fields"":""*""}";
@@ -129,11 +165,40 @@
             }
             WorkOrders = workOrders.Points.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(50).ToList();
         }
-        
+
+        if (SelectedLanguage != "en")
+        {
+            await TranslateWorkOrders();
+        }
+
+    }
+
+    protected async Task TranslateWorkOrders()
+    {
+        foreach (var each in WorkOrders)
+        {
+            each.strDescription = await Translator.TranslateAsync(each.strDescription, SelectedLanguage);
+        }
+
+        StateHasChanged();
     }
 
     protected void NavToDeatils(int Id)
     {
         Navigation.NavigateTo("/Details?woId=" + Id);
     }
+
+    private ElementText UIText = new();
+    public class ElementText
+    {
+        public string Closed { get; set; } = "Closed";
+        public string Description { get; set; } = "Description";
+        public string NewRequest { get; set; } = "New Request";
+        public string Open { get; set; } = "Open";
+        public string RequestedBy { get; set; } = "Requested By";
+        public string Search { get; set; } = "Search";
+        public string SubmittedOn { get; set; } = "Submitted On";
+    }
+    
+   
 }
