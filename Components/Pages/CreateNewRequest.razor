@@ -290,7 +290,7 @@
         }
         else
         {
-            await JS.InvokeVoidAsync("alert", "Could not create the workorder sorry, please check your selections and API keys");
+            await JS.InvokeVoidAsync("alert", UIText.CouldNotCreateWorkOrder);
         }
     }
 
@@ -506,13 +506,13 @@
                 }
                 else
                 {
-                    await JS.InvokeVoidAsync("alert", "I could not find that asset, please check your QR code.  -  " + code);
+                    await JS.InvokeVoidAsync("alert", UIText.CouldNotFindQRCode + " -  " + code);
                 }
             }
         }
         else
         {
-            await JS.InvokeVoidAsync("alert", "I could not find that asset, please check your QR code.  -  " + code);
+            await JS.InvokeVoidAsync("alert", UIText.CouldNotFindQRCode + " -  " + code);
         }
 
         StateHasChanged();
@@ -551,6 +551,8 @@
     public class ElementText
     {
         public string Closed { get; set; } = "Closed";
+        public string CouldNotCreateWorkOrder { get; set; } = "Could not create the workorder, please check your selections and API keys";
+        public string CouldNotFindQRCode { get; set; } = "I could not find that asset, please check your QR code.";
         public string Description { get; set; } = "Description";
         public string EnterWorkRequestDescription { get; set; } = "Enter work request description";
         public string Equipment { get; set; } = "Equipment";
