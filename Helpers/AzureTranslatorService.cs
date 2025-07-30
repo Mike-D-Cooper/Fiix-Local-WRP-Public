@@ -1,6 +1,38 @@
 ﻿using Local_WRP.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+
+public class AzureTranslatorServiceFactory
+{
+    private readonly ApplicationDbContext _dbContext;
+    private readonly HttpClient _httpClient;
+
+    public AzureTranslatorServiceFactory(ApplicationDbContext dbContext, HttpClient httpClient)
+    {
+        _dbContext = dbContext;
+        _httpClient = httpClient;
+    }
+
+    public async Task<AzureTranslatorService> CreateAsync()
+    {
+        var keyEntry = await _dbContext.TenantDetails
+            .FirstOrDefaultAsync();
+
+        if (keyEntry == null)
+            throw new Exception("Translator API key not found in the database.");
+
+        return new AzureTranslatorService(
+            _httpClient,
+            "https://api.cognitive.microsofttranslator.com",
+            keyEntry.AzureTranslatorKey,
+            keyEntry.AzureTranslatorRegion,
+            _dbContext
+        );
+    }
+}
 
 public class AzureTranslatorService
 {
@@ -18,6 +50,24 @@ public class AzureTranslatorService
         _region = region;
         _db = db;
     }
+
+    public async Task<AzureTranslatorService> CreateAsync()
+    {
+        var keyEntry = await _db.TenantDetails
+            .FirstOrDefaultAsync();
+
+        if (keyEntry == null)
+            throw new Exception("Translator API key not found in the database.");
+
+        return new AzureTranslatorService(
+            _httpClient,
+            "https://api.cognitive.microsofttranslator.com",
+            keyEntry.AzureTranslatorKey,
+            keyEntry.AzureTranslatorRegion,
+            _db
+        );
+    }
+
 
     public async Task<string> TranslateAsync(string text, string toLanguage, string fromLanguage = null)
     {        

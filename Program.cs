@@ -52,15 +52,9 @@ namespace Local_WRP
 
             builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
-            builder.Services.AddHttpClient();
+            builder.Services.AddHttpClient();            
 
-            builder.Services.AddScoped(sp =>
-                new AzureTranslatorService(
-                    sp.GetRequiredService<HttpClient>(),
-                    "https://api.cognitive.microsofttranslator.com", // Your endpoint
-                    "9fMVD8dyxP7x2qxhCBph3codVQz4qBY5CtNd8dvMMdpfhOBle8PyJQQJ99BGACBsN54XJ3w3AAAbACOG5Mvj",
-                    "canadacentral",
-                     sp.GetRequiredService<ApplicationDbContext>()));
+            builder.Services.AddScoped<AzureTranslatorServiceFactory>();
 
             var app = builder.Build();
 

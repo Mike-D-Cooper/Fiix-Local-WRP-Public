@@ -73,6 +73,18 @@
                 <ValidationMessage For="@(() => tenantModel.TimeZoneId)" class="text-danger" />
             </div>
 
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="tenantModel.TranslatorKey" class="form-control" id="TranslatorKey" placeholder="Azure Translator Key" autocomplete="off" />
+                <label for="TranslatorKey">Azure Translator Key</label>
+                <ValidationMessage For="@(() => tenantModel.TranslatorKey)" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="tenantModel.TranslatorRegion" class="form-control" id="TranslatorRegion" placeholder="Azure Translator Region" autocomplete="off" />
+                <label for="TranslatorRegion">Azure Translator Region</label>
+                <ValidationMessage For="@(() => tenantModel.TranslatorRegion)" class="text-danger" />
+            </div>
+
             <button type="button" @onclick="HandleValidSubmit" class="btn btn-primary w-100">Save</button>
         </EditForm>
     </div>
@@ -99,7 +111,9 @@
                     SecretKey = currentDetails.SecretKey,
                     TenantName = currentDetails.TenantName,
                     TimeZoneId = currentDetails.TimeZoneId,
-                    SelectedLanguage = currentDetails.Language
+                    SelectedLanguage = currentDetails.Language,
+                    TranslatorKey = currentDetails.AzureTranslatorKey,
+                    TranslatorRegion = currentDetails.AzureTranslatorRegion
 
                 };
 
@@ -135,7 +149,9 @@
                 TenantName = tenantModel.TenantName,
                 LimitToSite = tenantModel.LimitToSite == -1 ? null : tenantModel.LimitToSite,
                 TimeZoneId = tenantModel.TimeZoneId,
-                Language = tenantModel.SelectedLanguage
+                Language = tenantModel.SelectedLanguage,
+                AzureTranslatorKey = tenantModel.TranslatorKey,
+                AzureTranslatorRegion = tenantModel.TranslatorRegion
             });
             _db.SaveChanges();
 
@@ -166,6 +182,8 @@
         public string TimeZoneId { get; set; }
 
         public string SelectedLanguage { get; set; }
+        public string TranslatorKey { get; set; }
+        public string TranslatorRegion { get; set; }
     }
 
 

@@ -1,7 +1,7 @@
 ﻿@page "/Requests"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.WebUtilities
-@inject AzureTranslatorService Translator
+@inject AzureTranslatorServiceFactory TranslatorFactory
 
 <PageTitle>Requests</PageTitle>
 <div class="row">
@@ -96,6 +96,8 @@
 </div>
 
 @code {
+    private AzureTranslatorService Translator;
+
     public Data.TenantDetail TenantDetail { get; set; }
     public string UserName { get; set; }
     private Data.UserDetail SelectedUser = new();
@@ -109,7 +111,9 @@
     {
         if (first)
         {
+            Translator = await TranslatorFactory.CreateAsync();
             TenantDetail = _db.TenantDetails.FirstOrDefault();
+
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userName", out var userName))
             {
