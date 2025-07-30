@@ -10,8 +10,8 @@
         <div class="row">
             <div class="col-lg-4">
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="@UIText.Search" aria-label="Search" aria-describedby="button-search">
-                    <button class="btn btn-outline-secondary" type="button" id="button-search">
+                    <input type="text" class="form-control" placeholder="@UIText.Search" aria-label="Search" aria-describedby="button-search" @bind="SearchText">
+                    <button class="btn btn-outline-secondary" type="button" id="button-search" @onclick="FilterWorkOrders">
                         <i class="fa-solid fa-search"></i>
                     </button>
                 </div>
@@ -100,8 +100,10 @@
     public string UserName { get; set; }
     private Data.UserDetail SelectedUser = new();
     public CallFiixApi FiixAPI = new CallFiixApi();
+    public List<Local_WRP.APIModels.WorkOrder.FindRequestResults.Point> WorkOrdersUnfiltered = new List<APIModels.WorkOrder.FindRequestResults.Point>();
     public List<Local_WRP.APIModels.WorkOrder.FindRequestResults.Point> WorkOrders = new List<APIModels.WorkOrder.FindRequestResults.Point>();
     private string SelectedLanguage;
+    private string SearchText;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
@@ -164,6 +166,7 @@
                 }
             }
             WorkOrders = workOrders.Points.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(50).ToList();
+            WorkOrdersUnfiltered = WorkOrders;
         }
 
         if (SelectedLanguage != "en")
@@ -188,6 +191,33 @@
         Navigation.NavigateTo("/Details?woId=" + Id);
     }
 
+    protected void FilterWorkOrders()
+    {
+        if (SearchText.Trim() != "")
+        {
+            var WorkOrdersAssetCode = WorkOrdersUnfiltered
+                .Where(x => x.strAssetIds != null && x.strAssetIds.ToLower().Contains(SearchText.ToLower()))
+                .ToList();
+            var WorkOrdersAssetName = WorkOrdersUnfiltered
+                .Where(x => x.strAssets != null && x.strAssets.ToLower().Contains(SearchText.ToLower()))
+                .ToList();
+            var WorkOrdersDescription = WorkOrdersUnfiltered
+                .Where(x => x.strDescription != null && x.strDescription.ToLower().Contains(SearchText.ToLower()))
+                .ToList();
+
+            WorkOrders = new List<APIModels.WorkOrder.FindRequestResults.Point>();
+            WorkOrders.AddRange(WorkOrdersAssetCode);
+            WorkOrders.AddRange(WorkOrdersAssetName);
+            WorkOrders.AddRange(WorkOrdersDescription);
+            WorkOrders = WorkOrders.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(50).ToList();
+        }
+        else
+        {
+            WorkOrders = WorkOrdersUnfiltered;
+        }
+
+    }
+
     private ElementText UIText = new();
     public class ElementText
     {
@@ -199,6 +229,6 @@
         public string Search { get; set; } = "Search";
         public string SubmittedOn { get; set; } = "Submitted On";
     }
-    
-   
+
+
 }
