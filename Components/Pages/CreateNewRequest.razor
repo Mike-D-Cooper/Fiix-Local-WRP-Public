@@ -252,7 +252,7 @@
         await CreateNewWorkOrder();
 
         // Use SelectedSiteId as needed
-        await JS.InvokeVoidAsync("alert", $"Thank you, come again!!");
+        await JS.InvokeVoidAsync("alert", UIText.ThankYouComeAgain);
         Navigation.NavigateTo("/Requests?userName=" + UserInfo.Name);
         IsSubmitting = false;
     }
@@ -266,7 +266,7 @@
             intPriorityID = newRequestModel.PriorityId.Value,
             intSiteID = newRequestModel.SelectedAssetPoint.intSiteID,
             intWorkOrderStatusID = newRequestModel.WOStatusId.Value,
-            strDescription = newRequestModel.Description,
+            strDescription = await TranslateWODescription(),
             intRequestedByUserID = GuestUser.id,
             strNameUserGuest = UserInfo.Name
         };
@@ -292,6 +292,16 @@
         {
             await JS.InvokeVoidAsync("alert", UIText.CouldNotCreateWorkOrder);
         }
+    }
+
+    private async Task<string> TranslateWODescription()
+    {
+        var tenantInfo = _db.TenantDetails.FirstOrDefault();
+        if(tenantInfo!= null && tenantInfo.Language != UserInfo.Language)
+        {
+            return await Translator.TranslateAsync(newRequestModel.Description, tenantInfo.Language);
+        }
+        return newRequestModel.Description;
     }
 
     private async Task AddAssetToWorkOrder(long WorkorderId, APIModels.Assets.FindRequestResults.Point Asset)
@@ -564,6 +574,7 @@
         public string ScanAssetQRCode { get; set; } = "Scan Asset QR Code";
         public string SelectSite { get; set; } = "Select Site";
         public string Submit { get; set; } = "Submit";
+        public string ThankYouComeAgain { get; set; } = "Thank you, come again!!";
         public string Tools { get; set; } = "Tools";
         public string TypeAssetCodeorDescription { get; set; } = "Type asset code or description";
         public string UploadImages { get; set; } = "Upload Images";

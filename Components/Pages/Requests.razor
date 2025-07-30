@@ -169,7 +169,7 @@
             WorkOrdersUnfiltered = WorkOrders;
         }
 
-        if (SelectedLanguage != "en")
+        if (SelectedLanguage != TenantDetail.Language)
         {
             await TranslateWorkOrders();
         }
