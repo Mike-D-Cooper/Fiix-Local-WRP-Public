@@ -123,7 +123,13 @@
                 {
                     SelectedUser = usr;
                     SelectedLanguage = usr.Language; // Preselect user's language
-                    if(usr.Language != null) UIText = await Translator.TranslateUIElements<ElementText>(UIText, SelectedLanguage);
+                    if(usr.Language != null)
+                    {
+                        usr.Language = "en";
+                        _db.UserDetails.Update(usr);
+                        _db.SaveChanges();
+                        UIText = await Translator.TranslateUIElements<ElementText>(UIText, SelectedLanguage);
+                    }
                 }
 
                 Helpers.DatabaseCommon.GetAPICreds(_db, FiixAPI);

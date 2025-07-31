@@ -5,6 +5,6 @@
         public int Id { get; set; }
         public string Name { get; set; }
         public DateTime CreatedDateUTC { get; set; } = DateTime.UtcNow;
-        public string Language { get; set; }
+        public string Language { get; set; } = "en";
     }
 }

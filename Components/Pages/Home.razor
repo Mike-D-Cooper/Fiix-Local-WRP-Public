@@ -31,10 +31,11 @@
             {
                 _db.UserDetails.Add(new Data.UserDetail
                 {
-                    Name = userName
+                    Name = userName,
+                    Language = "en"
                 });
 
-                _db.SaveChanges();                
+                _db.SaveChanges();
             }
 
             Navigation.NavigateTo("/Requests?userName=" + userName);
