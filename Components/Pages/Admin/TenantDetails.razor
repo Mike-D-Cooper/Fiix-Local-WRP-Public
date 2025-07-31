@@ -74,7 +74,7 @@
             </div>
 
             <div class="form-floating mb-3">
-                <InputText @bind-Value="tenantModel.TranslatorKey" class="form-control" id="TranslatorKey" placeholder="Azure Translator Key" autocomplete="off" />
+                <InputText @bind-Value="tenantModel.TranslatorKey" class="form-control" id="TranslatorKey" placeholder="Azure Translator Key" type="password" autocomplete="off" />
                 <label for="TranslatorKey">Azure Translator Key</label>
                 <ValidationMessage For="@(() => tenantModel.TranslatorKey)" class="text-danger" />
             </div>

@@ -1,7 +1,5 @@
 ﻿using Local_WRP.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 
@@ -70,8 +68,8 @@ public class AzureTranslatorService
 
 
     public async Task<string> TranslateAsync(string text, string toLanguage, string fromLanguage = null)
-    {        
-        if(text != null && text.Length > 0)
+    {
+        if (text != null && text.Length > 0)
         {
             var existingTranslation = _db.Translations
             .Where(x => x.ToLanguage == toLanguage && x.FromPhrase == text)
@@ -87,7 +85,7 @@ public class AzureTranslatorService
                 {
                     result = await TranslateAsyncFromAzure(text, toLanguage, fromLanguage);
                     if (result != null) break;
-                }               
+                }
                 return result == null ? "" : result;
             }
         }
@@ -99,34 +97,42 @@ public class AzureTranslatorService
 
     public async Task<string> TranslateAsyncFromAzure(string text, string toLanguage, string fromLanguage = null)
     {
-        var route = $"/translate?api-version=3.0&to={toLanguage}";
-        if (!string.IsNullOrEmpty(fromLanguage))
-            route += $"&from={fromLanguage}";
+        string translatedText;
 
-        var requestBody = new[] { new { Text = text } };
-        var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-
-        _httpClient.DefaultRequestHeaders.Clear();
-        _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _subscriptionKey);
-        _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Region", _region);
-
-        var response = await _httpClient.PostAsync(_endpoint + route, content);
-        response.EnsureSuccessStatusCode();
-
-        var jsonResponse = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(jsonResponse);
-        var translatedText = doc.RootElement[0].GetProperty("translations")[0].GetProperty("text").GetString();
-        var detectedLanguage = doc.RootElement[0].GetProperty("detectedLanguage").GetProperty("language").GetString();
-
-        _db.Translations.Add(new Translation
+        if (_subscriptionKey != null && _subscriptionKey.Trim() != "")
         {
-            FromLanguage = detectedLanguage,
-            ToLanguage = toLanguage,
-            FromPhrase = text,
-            ToPhrase = translatedText
-        });
-        _db.SaveChanges();
+            var route = $"/translate?api-version=3.0&to={toLanguage}";
+            if (!string.IsNullOrEmpty(fromLanguage))
+                route += $"&from={fromLanguage}";
 
+            var requestBody = new[] { new { Text = text } };
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _subscriptionKey);
+            _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Region", _region);
+
+            var response = await _httpClient.PostAsync(_endpoint + route, content);
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(jsonResponse);
+            translatedText = doc.RootElement[0].GetProperty("translations")[0].GetProperty("text").GetString();
+            var detectedLanguage = doc.RootElement[0].GetProperty("detectedLanguage").GetProperty("language").GetString();
+
+            _db.Translations.Add(new Translation
+            {
+                FromLanguage = detectedLanguage,
+                ToLanguage = toLanguage,
+                FromPhrase = text,
+                ToPhrase = translatedText
+            });
+            _db.SaveChanges();
+        }
+        else
+        {
+            translatedText = text;
+        }
         return translatedText;
     }
 
