@@ -11,6 +11,22 @@
     <div class="col-lg-6" style="background-color: #f2f2f2; border: 1px solid rgba(98,98,98,.12);">
         <h3 class="m-4">@UIText.NewWorkRequest</h3>
     </div>
+    <div class="row mb-3">
+    <div class="col-lg-3"></div>
+    <div class="col-lg-6">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-light p-2 rounded">
+                <li class="breadcrumb-item">
+                        <a href="/Requests?userName=@UserInfo?.Name">@UIText.WorkRequests</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    @UIText.NewWorkRequest
+                </li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
 </div>
 <div class="row">
     <div class="col-lg-3"></div>
@@ -21,7 +37,9 @@
             <div class="row">
                 <div class="col-lg-8">
                     <div class="mb-3">
-                        <label for="siteDropdown" class="form-label">@UIText.SelectSite</label>
+                        <label for="siteDropdown" class="form-label">
+                            @UIText.SelectSite <span class="text-danger">*</span>
+                        </label>
                         <select class="form-select" id="siteDropdown" @bind="newRequestModel.SiteId">
                             <option value="">-- @UIText.SelectSite --</option>
                             @foreach (var site in Sites)
@@ -58,6 +76,10 @@
                     <div class="mt-2 alert alert-success p-2">
                         Selected: <strong>@newRequestModel.SelectedAssetPoint.strCode</strong> - @newRequestModel.SelectedAssetPoint.strName
                     </div>
+
+                    <button type="button" class="btn btn-secondary mb-3" @onclick="ResetAssetSelector">
+                        <i class="fa-solid fa-rotate-left"></i> Reset Asset Selection
+                    </button>
                 }
                 else
                 {
@@ -70,7 +92,9 @@
                     </div>
 
                     <div class="mb-3 position-relative">
-                        <label for="assetTypeahead" class="form-label">@UIText.FindAsset</label>
+                        <label for="assetTypeahead" class="form-label">
+                            @UIText.FindAsset <span class="text-danger">*</span>
+                        </label>
                         <input type="text"
                                class="form-control"
                                id="assetTypeahead"
@@ -99,8 +123,11 @@
                 <div class="row">
                     <div class="col-lg-6">
                         <div class="mb-3">
-                            <label for="maintTypeDropdown" class="form-label">@UIText.SelectAMaintenanceType</label>
+                            <label for="maintTypeDropdown" class="form-label">
+                                @UIText.SelectAMaintenanceType
+                            </label>
                             <select class="form-select" id="maintTypeDropdown" @bind="newRequestModel.MaintTypeId">
+                                <option value="-1">-- Select Maintenance Type --</option>
                                 @foreach (var each in MaintTypes)
                                 {
                                     <option value="@each.id">@each.strName</option>
@@ -111,8 +138,11 @@
                     </div>
                     <div class="col-lg-6">
                         <div class="mb-3">
-                            <label for="priorityDropdown" class="form-label">@UIText.SelectAPriority</label>
+                            <label for="priorityDropdown" class="form-label">
+                                @UIText.SelectAPriority
+                            </label>
                             <select class="form-select" id="priorityDropdown" @bind="newRequestModel.PriorityId">
+                                <option value="-1">-- Select Priority --</option>
                                 @foreach (var each in Priorities)
                                 {
                                     <option value="@each.id">@each.strName</option>
@@ -124,7 +154,9 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="description" class="form-label">@UIText.Description</label>
+                    <label for="description" class="form-label">
+                        @UIText.Description <span class="text-danger">*</span>
+                    </label>
                     <textarea class="form-control" id="description" rows="4" placeholder="@UIText.EnterWorkRequestDescription" @bind="newRequestModel.Description"></textarea>
                     <ValidationMessage For="@(() => newRequestModel.Description)" class="text-danger" />
                 </div>
@@ -174,6 +206,14 @@
         </EditForm>
     </div>
 </div>
+<div class="row mt-2 mb-4">
+    <div class="col-lg-3"></div>
+    <div class="col-lg-6 text-end">
+        <button type="button" class="btn btn-outline-secondary" @onclick="ReloadPage">
+            <i class="fa-solid fa-eraser"></i> Clear Form
+        </button>
+    </div>
+</div>
 
 @if (IsSubmitting)
 {
@@ -194,7 +234,7 @@
     private List<APIModels.Assets.FindRequestResults.Point> AssetPoints = new();
     private List<APIModels.MaintenanceType.FindRequestResults.Point> MaintTypes = new();
     private List<APIModels.Priority.FindRequestResults.Point> Priorities = new();
-    private APIModels.User.FindRequestResults.Point GuestUser = new APIModels.User.FindRequestResults.Point();
+    private APIModels.User.FindRequestResults.Point GuestUser = new APIModels.User.FindRequestResults.Point();    
 
     private List<string> UploadedImages = new();
     private List<IBrowserFile> SelectedFiles = new();
@@ -276,19 +316,10 @@
         string test = JsonSerializer.Serialize(request);
 
         var responce = await FiixAPI.GetServerResponce<APIModels.WorkOrder.AddRequestResults>(request);
-        if (responce != null)
+        if (responce.Points != null)
         {
             await AddAssetToWorkOrder(responce.Points.id, newRequestModel.SelectedAssetPoint);
-            await AddImagesToWorkOrder(responce.Points.id);
-
-            _db.UserWorkOrders.Add(new Data.UserWorkOrders
-            {
-                CreatedDate = DateTime.UtcNow,
-                UserId = UserInfo.Id,
-                WorkOrderId = responce.Points.id
-            });
-
-            _db.SaveChanges();
+            await AddImagesToWorkOrder(responce.Points.id);            
         }
         else
         {
@@ -417,7 +448,7 @@
         if (responce != null)
         {
             MaintTypes = responce.Points.OrderBy(x => x.strName).ToList();
-            newRequestModel.MaintTypeId = MaintTypes.FirstOrDefault().id;
+            // newRequestModel.MaintTypeId = MaintTypes.FirstOrDefault().id;
         }
     }
 
@@ -431,7 +462,7 @@
         if (responce != null)
         {
             Priorities = responce.Points.OrderByDescending(x => x.intOrder).ToList();
-            newRequestModel.PriorityId = Priorities.FirstOrDefault().id;
+            // newRequestModel.PriorityId = Priorities.FirstOrDefault().id;
         }
     }
 
@@ -481,19 +512,30 @@
 
     private async Task OnImagesSelected(InputFileChangeEventArgs e)
     {
+        IsSubmitting = true;
         UploadedImages.Clear();
         SelectedFiles.Clear();
         foreach (var file in e.GetMultipleFiles())
         {
-            SelectedFiles.Add(file);
+            // Only allow image files
+            if (file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectedFiles.Add(file);
 
-            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit per image
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            var base64 = Convert.ToBase64String(ms.ToArray());
-            var imageDataUrl = $"data:{file.ContentType};base64,{base64}";
-            UploadedImages.Add(imageDataUrl);
+                using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit per image
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var base64 = Convert.ToBase64String(ms.ToArray());
+                var imageDataUrl = $"data:{file.ContentType};base64,{base64}";
+                UploadedImages.Add(imageDataUrl);
+            }
+            else
+            {
+                // Optionally notify the user about invalid file type
+                await JS.InvokeVoidAsync("alert", $"File '{file.Name}' is not a valid image and will be ignored.");
+            }
         }
+        IsSubmitting = false;
     }
 
     private async Task StartQrScan()
@@ -530,6 +572,17 @@
         StateHasChanged();
     }
 
+    private void ResetAssetSelector()
+    {
+        newRequestModel.SelectedAssetPoint = null;
+        assetSearchText = string.Empty;
+    }
+
+    private void ReloadPage()
+    {
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+
     public class NewRequestModel
     {
         private long? _siteId;
@@ -550,11 +603,21 @@
         public Action<long?> OnSiteIdChanged { get; set; }
 
         public int Kind { get; set; } = 2;
+
         [Required(ErrorMessage = "Please enter a description")]
         public string Description { get; set; }
-        public long? MaintTypeId { get; set; }
-        public long? PriorityId { get; set; }
+
+        // Default values for Maintenance Type and Priority
+        [Required(ErrorMessage = "Select a maintenance type")]
+        [Range(1, long.MaxValue, ErrorMessage = "Please select a maintenance type")]
+        public long? MaintTypeId { get; set; } = -1;
+
+        [Required(ErrorMessage = "Select a priority")]
+        [Range(1, long.MaxValue, ErrorMessage = "Please select a priority")]
+        public long? PriorityId { get; set; } = -1;
+
         public long? WOStatusId { get; set; }
+
         [Required(ErrorMessage = "Please enter and select an asset")]
         public APIModels.Assets.FindRequestResults.Point SelectedAssetPoint { get; set; }
     }
@@ -580,5 +643,6 @@
         public string Tools { get; set; } = "Tools";
         public string TypeAssetCodeorDescription { get; set; } = "Type asset code or description";
         public string UploadImages { get; set; } = "Upload Images";
+        public string WorkRequests { get; set; } = "Work Requests";
     }
 }

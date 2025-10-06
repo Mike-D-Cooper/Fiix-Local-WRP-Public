@@ -29,11 +29,10 @@
     protected UserInput NewUser = new();
     protected bool ShowUI = false;
 
-    protected override async Task OnAfterRenderAsync(bool first)
+    protected override void OnAfterRender(bool first)
     {
         if (first)
         {
-            NewUser.userName = " ";
             ShowUI = true;
             StateHasChanged();
         } 
@@ -61,6 +60,22 @@
 
     public class UserInput
     {
-        public string userName { get; set; } = "";
+        private string _userName = "";
+        public string userName
+        {
+            get => _userName;
+            set
+            {
+                if (value == null)
+                {
+                    _userName = "";
+                }
+                else
+                {
+                    // Trim whitespace and remove control characters
+                    _userName = new string(value.Trim().Where(c => !char.IsControl(c)).ToArray());
+                }
+            }
+        }
     }
 }

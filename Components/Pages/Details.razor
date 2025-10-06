@@ -11,6 +11,21 @@
         <h2 class="m-2">#@WorkOrder.strCode</h2>
     </div>
 </div>
+<div class="row mb-3">
+    <div class="col-lg-3"></div>
+    <div class="col-lg-6">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-light p-2 rounded">
+                <li class="breadcrumb-item">
+                    <a href="/Requests?userName=@UserDetail?.Name">@UIText.WorkRequests</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    @UIText.WorkRequestDetails
+                </li>
+            </ol>
+        </nav>
+    </div>
+</div>
 <div class="row">
     <div class="col-lg-3"></div>
     <div class="col-lg-6">
@@ -130,6 +145,8 @@
         {
             Translator = await TranslatorFactory.CreateAsync();
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+            QueryHelpers.ParseQuery(uri.Query).TryGetValue("user", out var strUser);
+
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("woId", out var strWoId) && int.TryParse(strWoId, out woId))
             {
                 Helpers.DatabaseCommon.GetAPICreds(_db, FiixAPI);
@@ -137,7 +154,7 @@
                 {
                     await GetWorkOrder(woId);
                     await GetWorkOrderTasks(woId);
-                    GetUserDeatils(woId);
+                    GetUserDeatils(strUser);
                     await TranslateWorkOrders();
                     await TranslateWorkOrderTasks();
                     UIText = await Translator.TranslateUIElements<ElementText>(UIText, UserDetail.Language);
@@ -148,20 +165,14 @@
         }
     }
 
-    protected void GetUserDeatils(int Id)
+    protected void GetUserDeatils(string userNname)
     {
-        var userWOs = _db.UserWorkOrders.Where(x => x.Id == Id).FirstOrDefault();
-        if (userWOs != null)
-        {
-            UserDetail = _db.UserDetails.FirstOrDefault(x => x.Id == userWOs.UserId);
-        }
+        UserDetail = _db.UserDetails.FirstOrDefault(x => x.Name.ToLower() == userNname.ToLower());
     }
 
     protected async Task GetWorkOrderTasks(int Id)
     {
-        var userWOs = _db.UserWorkOrders.Where(x => x.Id == Id).FirstOrDefault();
-
-        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrderTask"",""filters"":[{""ql"":""intWorkOrderID= " + userWOs.WorkOrderId + @" ""}],""fields"":""*""}";
+        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrderTask"",""filters"":[{""ql"":""intWorkOrderID= " + Id + @" ""}],""fields"":""*""}";
 
         var workOrderTasks = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrderTask.FindRequestResults>(request);
         WorkOrderTasks = workOrderTasks.Points.OrderBy(x => x.intOrder).ToList();
@@ -169,9 +180,7 @@
 
     protected async Task GetWorkOrder(int Id)
     {
-        var userWOs = _db.UserWorkOrders.Where(x => x.Id == Id).FirstOrDefault();
-
-        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" id= " + userWOs.WorkOrderId + @" ""}],""fields"":""*,dv_intMaintenanceTypeID,dv_intSiteID""}";
+        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" id= " + Id + @" ""}],""fields"":""*,dv_intMaintenanceTypeID,dv_intSiteID""}";
 
         var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
 
@@ -217,5 +226,7 @@
         public string SubmittedOn { get; set; } = "Submitted On";
         public string Tasks { get; set; } = "Tasks";
         public string WorkOrder { get; set; } = "Work Order";
+        public string WorkRequests { get; set; } = "Work Requests";
+        public string WorkRequestDetails { get; set; } = "Work Request Details";
     }
 }

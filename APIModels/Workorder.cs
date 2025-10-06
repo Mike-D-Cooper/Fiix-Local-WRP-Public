@@ -85,7 +85,7 @@ namespace Local_WRP.APIModels
                 public string strCompletedByUserIds { get; set; }
                 public string strCompletedByUsers { get; set; }
                 public string strCompletionNotes { get; set; }
-                public int LocalWOId { get; set; }
+                //public int LocalWOId { get; set; }
                 public ExtraFields extraFields { get; set; } = new ExtraFields();
             }
 

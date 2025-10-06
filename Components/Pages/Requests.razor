@@ -18,7 +18,7 @@
                     }
                 </select>
             </div>
-            <div class="col-lg-4">                
+            <div class="col-lg-4">
                 @if (WorkOrders.Count() > 0)
                 {
                     <label for="search" class="form-label">@UIText.Search</label>
@@ -44,7 +44,7 @@
             {
                 if (each.dtmDateCompleted.HasValue)
                 {
-                    <div class="row custom-row green-left mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
+                    <div class="row custom-row green-left mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.id)">
                         <div class="col-12">
                             <div class="row">
                                 <div class="col-lg-4">
@@ -74,7 +74,7 @@
                 }
                 else
                 {
-                    <div class="row custom-row green-red mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
+                    <div class="row custom-row green-red mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.id)">
                         <div class="col-12">
                             <div class="row">
                                 <div class="col-lg-4">
@@ -129,7 +129,7 @@
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userName", out var userName))
             {
-                UserName = userName;
+                UserName = userName.ToString().Trim();                
                 var usr = CheckAndCreateUser(userName);
                 if (usr != null)
                 {
@@ -147,7 +147,7 @@
                 Helpers.DatabaseCommon.GetAPICreds(_db, FiixAPI);
                 if (usr != null && FiixAPI.BaseUrl != "")
                 {
-                    await GetWorkOrders(usr.Id);
+                    await GetWorkOrders(usr.Name);
                 }
 
             }
@@ -183,29 +183,24 @@
             _db.UserDetails.Update(usr);
             await _db.SaveChangesAsync();
 
-            await GetWorkOrders(SelectedUser.Id);
+            await GetWorkOrders(SelectedUser.Name);
             UIText = await Translator.TranslateUIElements<ElementText>(UIText, SelectedLanguage);
         }
     }
 
-    protected async Task GetWorkOrders(int userId)
+    protected async Task GetWorkOrders(string userName)
     {
-        var userWOs = _db.UserWorkOrders.Where(x => x.UserId == userId).ToList();
-        if (userWOs != null && userWOs.Count() > 0)
-        {
-            var workorderIdList = string.Join(" or ", userWOs.Select(x => "id=" + x.WorkOrderId.ToString()));
-            string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" " + workorderIdList + @" ""}],""fields"":""*""}";
+        string nameFilter = BuildJsonFilter(userName);
+        nameFilter = nameFilter.Substring(1, nameFilter.Length - 2);
 
-            var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
-            @foreach (var each in userWOs)
-            {
-                var wo = workOrders.Points.Where(x => x.id == each.WorkOrderId).FirstOrDefault();
-                if (wo != null)
-                {
-                    wo.LocalWOId = each.Id;
-                }
-            }
-            WorkOrders = workOrders.Points.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(50).ToList();
+        string request = $@"{{""_maCn"":""FindRequest"",""clientVersion"":{{""major"":2,""minor"":8,""patch"":1}},""className"":""WorkOrder"",{nameFilter},""fields"":""*"" , ""orderBy"": ""id DESC"" , ""maxObjects"": 250}}";
+        var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
+        WorkOrdersUnfiltered = new();
+        if(workOrders != null)
+        {
+            //WorkOrders = workOrders.Points.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(250).ToList();
+            //WorkOrders.AddRange(workOrders.Points.OrderBy(x => !x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(250).ToList());
+            WorkOrders = workOrders.Points.OrderByDescending(x => x.id).ToList();
             WorkOrdersUnfiltered = WorkOrders;
         }
 
@@ -215,6 +210,52 @@
         }
 
     }
+
+    public string BuildJsonFilter(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "{\"filters\":[]}";
+
+        var variations = new List<string>();
+        GenerateRecursive(name.ToCharArray(), 0, "", variations);
+
+        string ql = string.Join(" or ", new string[variations.Count].Select(_ => "strNameUserGuest = ?"));
+        var filter = new
+        {
+            filters = new[]
+            {
+                new
+                {
+                    ql,
+                    parameters = variations
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(filter, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static void GenerateRecursive(char[] chars, int index, string current, List<string> results)
+    {
+        if (index == chars.Length)
+        {
+            results.Add(current);
+            return;
+        }
+
+        char c = chars[index];
+        if (char.IsLetter(c))
+        {
+            GenerateRecursive(chars, index + 1, current + char.ToLower(c), results);
+            GenerateRecursive(chars, index + 1, current + char.ToUpper(c), results);
+        }
+        else
+        {
+            GenerateRecursive(chars, index + 1, current + c, results);
+        }
+    }
+
+
 
     protected async Task TranslateWorkOrders()
     {
@@ -228,7 +269,7 @@
 
     protected void NavToDeatils(int Id)
     {
-        Navigation.NavigateTo("/Details?woId=" + Id);
+        Navigation.NavigateTo("/Details?woId=" + Id + "&user=" + SelectedUser.Name);
     }
 
     protected void FilterWorkOrders()
