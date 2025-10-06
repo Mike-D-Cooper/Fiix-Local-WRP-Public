@@ -66,7 +66,6 @@ public class AzureTranslatorService
         );
     }
 
-
     public async Task<string> TranslateAsync(string text, string toLanguage, string fromLanguage = null)
     {
         if (text != null && text.Length > 0)

@@ -9,15 +9,8 @@
     <div class="col-lg-6">
         <div class="row">
             <div class="col-lg-4">
-                <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="@UIText.Search" aria-label="Search" aria-describedby="button-search" @bind="SearchText">
-                    <button class="btn btn-outline-secondary" type="button" id="button-search" @onclick="FilterWorkOrders">
-                        <i class="fa-solid fa-search"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <select class="form-select" value="@SelectedLanguage" @onchange="OnLanguageChanged">
+                <label for="languageSelctor" class="form-label">@UIText.SelectYourLanguage</label>
+                <select id="languageSelctor" class="form-select" value="@SelectedLanguage" @onchange="OnLanguageChanged">
                     <option value="">-- Select Language --</option>
                     @foreach (var lang in AzureTranslatorLanguages.SupportedLanguages)
                     {
@@ -25,71 +18,90 @@
                     }
                 </select>
             </div>
+            <div class="col-lg-4">                
+                @if (WorkOrders.Count() > 0)
+                {
+                    <label for="search" class="form-label">@UIText.Search</label>
+                    <div class="input-group mb-3">
+                        <input id="search" type="text" class="form-control" placeholder="@UIText.Search" aria-label="Search" aria-describedby="button-search" @bind="SearchText">
+                        <button class="btn btn-outline-secondary" type="button" id="button-search" @onclick="FilterWorkOrders">
+                            <i class="fa-solid fa-search"></i>
+                        </button>
+                    </div>
+                }
+            </div>
             <div class="col-lg-4 text-end">
                 <a class="btn btn-outline-dark" href="/CreateNewRequest?userName=@UserName"><i class="fa-solid fa-circle-plus"></i> @UIText.NewRequest </a>
             </div>
         </div>
-        @foreach (var each in WorkOrders)
+        @if (WorkOrders.Count() == 0)
         {
-            if (each.dtmDateCompleted.HasValue)
+            <a class="btn btn-success w-100 mt-5" href="/CreateNewRequest?userName=@UserName"><i class="fa-solid fa-circle-plus"></i> @UIText.CreateYourFirstRequest </a>
+        }
+        else
+        {
+            @foreach (var each in WorkOrders)
             {
-                <div class="row custom-row green-left mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
-                    <div class="col-12">
-                        <div class="row">
-                            <div class="col-lg-4">
-                                <h5>@UIText.Closed</h5>
-                                <p>@each.strAssets</p>
+                if (each.dtmDateCompleted.HasValue)
+                {
+                    <div class="row custom-row green-left mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
+                        <div class="col-12">
+                            <div class="row">
+                                <div class="col-lg-4">
+                                    <h5>@UIText.Closed</h5>
+                                    <p>@each.strAssets</p>
+                                </div>
+                                <div class="col-lg-8">
+                                    <strong>@UIText.Description</strong>
+                                    <p>@each.strDescription</p>
+                                </div>
                             </div>
-                            <div class="col-lg-8">
-                                <strong>@UIText.Description</strong>
-                                <p>@each.strDescription</p>
-                            </div>
-                        </div>
-                        <hr />
-                        <div class="row">
-                            <div class="col-lg-2">
-                                <strong>#@each.strCode</strong>
-                            </div>
-                            <div class="col-lg-2"></div>
-                            <div class="col-lg-5">
-                                @UIText.SubmittedOn: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
-                            </div>
-                            <div class="col-lg-3">
-                                @UIText.RequestedBy: @UserName
+                            <hr />
+                            <div class="row">
+                                <div class="col-lg-2">
+                                    <strong>#@each.strCode</strong>
+                                </div>
+                                <div class="col-lg-2"></div>
+                                <div class="col-lg-5">
+                                    @UIText.SubmittedOn: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
+                                </div>
+                                <div class="col-lg-3">
+                                    @UIText.RequestedBy: @UserName
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            }
-            else
-            {
-                <div class="row custom-row green-red mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
-                    <div class="col-12">
-                        <div class="row">
-                            <div class="col-lg-4">
-                                <h5>@UIText.Open</h5>
-                                <p>@each.strAssets</p>
+                }
+                else
+                {
+                    <div class="row custom-row green-red mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
+                        <div class="col-12">
+                            <div class="row">
+                                <div class="col-lg-4">
+                                    <h5>@UIText.Open</h5>
+                                    <p>@each.strAssets</p>
+                                </div>
+                                <div class="col-lg-8">
+                                    <strong>@UIText.Description</strong>
+                                    <p>@each.strDescription</p>
+                                </div>
                             </div>
-                            <div class="col-lg-8">
-                                <strong>@UIText.Description</strong>
-                                <p>@each.strDescription</p>
-                            </div>
-                        </div>
-                        <hr />
-                        <div class="row">
-                            <div class="col-lg-2">
-                                <strong>#@each.strCode</strong>
-                            </div>
-                            <div class="col-lg-2"></div>
-                            <div class="col-lg-5">
-                                @UIText.SubmittedOn: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
-                            </div>
-                            <div class="col-lg-3">
-                                @UIText.RequestedBy: @UserName
+                            <hr />
+                            <div class="row">
+                                <div class="col-lg-2">
+                                    <strong>#@each.strCode</strong>
+                                </div>
+                                <div class="col-lg-2"></div>
+                                <div class="col-lg-5">
+                                    @UIText.SubmittedOn: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
+                                </div>
+                                <div class="col-lg-3">
+                                    @UIText.RequestedBy: @UserName
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                }
             }
         }
     </div>
@@ -118,12 +130,12 @@
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userName", out var userName))
             {
                 UserName = userName;
-                var usr = _db.UserDetails.FirstOrDefault(x => x.Name == UserName);
+                var usr = CheckAndCreateUser(userName);
                 if (usr != null)
                 {
                     SelectedUser = usr;
                     SelectedLanguage = usr.Language; // Preselect user's language
-                    if(usr.Language != null)
+                    if (usr.Language != null)
                     {
                         usr.Language = "en";
                         _db.UserDetails.Update(usr);
@@ -141,6 +153,24 @@
             }
             StateHasChanged();
         }
+    }
+
+    protected Data.UserDetail CheckAndCreateUser(string userName)
+    {
+        var newUserDetail = new Data.UserDetail();
+        var dbUser = _db.UserDetails.FirstOrDefault(x => x.Name == UserName);
+        if (dbUser == null)
+        {
+            _db.UserDetails.Add(new Data.UserDetail
+            {
+                CreatedDateUTC = DateTime.UtcNow,
+                Language = "en",
+                Name = userName
+            });
+            _db.SaveChanges();
+            return CheckAndCreateUser(userName);
+        }
+        return dbUser;
     }
 
     private async Task OnLanguageChanged(ChangeEventArgs e)
@@ -203,7 +233,7 @@
 
     protected void FilterWorkOrders()
     {
-        if (SearchText.Trim() != "")
+        if (SearchText != null && SearchText.Trim() != "")
         {
             var WorkOrdersAssetCode = WorkOrdersUnfiltered
                 .Where(x => x.strAssetIds != null && x.strAssetIds.ToLower().Contains(SearchText.ToLower()))
@@ -232,11 +262,13 @@
     public class ElementText
     {
         public string Closed { get; set; } = "Closed";
+        public string CreateYourFirstRequest { get; set; } = "Create Your First Work Request";
         public string Description { get; set; } = "Description";
         public string NewRequest { get; set; } = "New Request";
         public string Open { get; set; } = "Open";
         public string RequestedBy { get; set; } = "Requested By";
-        public string Search { get; set; } = "Search";
+        public string Search { get; set; } = "Search For Work Orders";
+        public string SelectYourLanguage { get; set; } = "Select Your Language";
         public string SubmittedOn { get; set; } = "Submitted On";
     }
 }
