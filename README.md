@@ -1,6 +1,8 @@
 # Fiix Local Work Request Portal (WRP)
 
-![App Logo](images/Fiix-RA-lockup.svg)
+<div align="center">
+  <img src="Images/Local%20WRP%20Logo.png" alt="App Logo" width="300"/>
+</div>
 
 ## Overview
 
@@ -25,8 +27,9 @@ A key feature is real-time language translation for all content, powered by Azur
 ## Screenshots
 
 <!-- Add screenshots of the app UI here -->
-![Screenshot 1](images/screenshot1.png)
-![Screenshot 2](images/screenshot2.png)
+![Screenshot 1](Images/ScreenShot1LocalWRP.png)
+![Screenshot 1](Images/ScreenShot3LocalWRP.png)
+![Screenshot 1](Images/ScreenShot2LocalWRP.png)
 
 ---
 
