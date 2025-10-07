@@ -107,7 +107,7 @@ This allows hosting on other platforms that support .NET 9.
 
 ## License
 
-[MIT](LICENSE)
+Use at your own risk.  No Warrently of any kind. 
 
 ---
 
