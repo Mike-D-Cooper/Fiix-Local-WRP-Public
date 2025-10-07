@@ -10,34 +10,72 @@
             <img src="images/Fiix-RA-lockup.svg" class="img-fluid" alt="App Logo" style="max-width: 400px;" />
         </div>
         <h4><strong>Work Request Portal</strong></h4>
-        <div class="mt-4">
-            <div class="mb-3 text-start">
-                <label for="exampleFormControlInput1" class="form-label">Name *</label>
-                <input type="text" class="form-control" idplaceholder="Enter Name" @bind="userName">
+        @if (ShowUI)
+        {
+            <div class="mt-4">
+                <EditForm OnValidSubmit="CheckUser" Model="NewUser" autocomplete="off">
+                    <div class="mb-3 text-start">
+                        <label for="usr" class="form-label">Name *</label>
+                        <InputText type="text" class="form-control" id="usr" placeholder="Enter Name" @bind-Value="@NewUser.userName" />
+                    </div>
+                    <button class="btn btn-warning w-100" type="submit">Continue</button>
+                </EditForm>
             </div>
-        </div>
-        <button class="btn btn-warning w-100" @onclick="CheckUser">Continue</button>
+        }
     </div>
 </div>
 
 @code {
-    public string userName = "";
-    public void CheckUser()
+    protected UserInput NewUser = new();
+    protected bool ShowUI = false;
+
+    protected override void OnAfterRender(bool first)
     {
-        if (userName != "")
+        if (first)
         {
-            var existingUser = _db.UserDetails.FirstOrDefault(x => x.Name.ToLower().Trim() == userName.ToLower().Trim());
+            ShowUI = true;
+            StateHasChanged();
+        } 
+    }
+
+    protected void CheckUser()
+    {
+        if (NewUser.userName != "")
+        {
+            var existingUser = _db.UserDetails.FirstOrDefault(x => x.Name.ToLower().Trim() == NewUser.userName.ToLower().Trim());
             if (existingUser == null)
             {
                 _db.UserDetails.Add(new Data.UserDetail
                 {
-                    Name = userName
+                    Name = NewUser.userName,
+                    Language = "en"
                 });
 
-                _db.SaveChanges();                
+                _db.SaveChanges();
             }
 
-            Navigation.NavigateTo("/Requests?userName=" + userName);
+            Navigation.NavigateTo("/Requests?userName=" + NewUser.userName);
+        }
+    }
+
+    public class UserInput
+    {
+        private string _userName = "";
+        public string userName
+        {
+            get => _userName;
+            set
+            {
+                if (value == null)
+                {
+                    _userName = "";
+                }
+                else
+                {
+                    // Trim whitespace and remove control characters
+                    _userName = new string(value.Trim().Where(c => !char.IsControl(c)).ToArray());
+                }
+            }
         }
     }
 }

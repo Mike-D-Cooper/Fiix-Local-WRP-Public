@@ -2,14 +2,31 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using System.ComponentModel.DataAnnotations
 @rendermode InteractiveServer
+@inject AzureTranslatorServiceFactory TranslatorFactory
 
 <PageTitle>New Request</PageTitle>
 
 <div class="row mt-4">
     <div class="col-lg-3"></div>
     <div class="col-lg-6" style="background-color: #f2f2f2; border: 1px solid rgba(98,98,98,.12);">
-        <h3 class="m-4">New Work Request </h3>
+        <h3 class="m-4">@UIText.NewWorkRequest</h3>
     </div>
+    <div class="row mb-3">
+    <div class="col-lg-3"></div>
+    <div class="col-lg-6">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-light p-2 rounded">
+                <li class="breadcrumb-item">
+                        <a href="/Requests?userName=@UserInfo?.Name">@UIText.WorkRequests</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    @UIText.NewWorkRequest
+                </li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
 </div>
 <div class="row">
     <div class="col-lg-3"></div>
@@ -20,9 +37,11 @@
             <div class="row">
                 <div class="col-lg-8">
                     <div class="mb-3">
-                        <label for="siteDropdown" class="form-label">Select Site</label>
+                        <label for="siteDropdown" class="form-label">
+                            @UIText.SelectSite <span class="text-danger">*</span>
+                        </label>
                         <select class="form-select" id="siteDropdown" @bind="newRequestModel.SiteId">
-                            <option value="">-- Select a Site --</option>
+                            <option value="">-- @UIText.SelectSite --</option>
                             @foreach (var site in Sites)
                             {
                                 <option value="@site.Id">@site.Name (@site.Code)</option>
@@ -34,9 +53,9 @@
                 {
                     <div class="col-lg-4 ">
                         <div class="mb-3 text-lg-end">
-                            <label class="form-label">Scan Asset QR Code</label>
+                            <label class="form-label">@UIText.ScanAssetQRCode</label>
                             <div id="qr-reader" style="width: 300px"></div>
-                            <button type="button" class="btn btn-outline-secondary w-100" @onclick="StartQrScan">Scan QR Code - <i class="fa-solid fa-camera-retro"></i></button>
+                            <button type="button" class="btn btn-outline-secondary w-100" @onclick="StartQrScan">@UIText.ScanAssetQRCode - <i class="fa-solid fa-camera-retro"></i></button>
                         </div>
                     </div>
                 }
@@ -47,33 +66,39 @@
                 @if (newRequestModel.SelectedAssetPoint != null)
                 {
                     <div class="mb-3">
-                        <label for="kindDropdown" class="form-label">Select Asset Category</label>
+                        <label for="kindDropdown" class="form-label">@UIText.SelectAssetCategory</label>
                         <select class="form-select" id="kindDropdown" value="@newRequestModel.Kind" @onchange="OnKindChanged" disabled>
-                            <option value="2">Equipment</option>
-                            <option value="3">Tools</option>
+                            <option value="2">@UIText.Equipment</option>
+                            <option value="3">@UIText.Tools</option>
                         </select>
                     </div>
 
                     <div class="mt-2 alert alert-success p-2">
                         Selected: <strong>@newRequestModel.SelectedAssetPoint.strCode</strong> - @newRequestModel.SelectedAssetPoint.strName
                     </div>
+
+                    <button type="button" class="btn btn-secondary mb-3" @onclick="ResetAssetSelector">
+                        <i class="fa-solid fa-rotate-left"></i> Reset Asset Selection
+                    </button>
                 }
                 else
                 {
                     <div class="mb-3">
-                        <label for="kindDropdown" class="form-label">Select Asset Category</label>
+                        <label for="kindDropdown" class="form-label">@UIText.SelectAssetCategory</label>
                         <select class="form-select" id="kindDropdown" value="@newRequestModel.Kind" @onchange="OnKindChanged">
-                            <option value="2">Equipment</option>
-                            <option value="3">Tools</option>
+                            <option value="2">@UIText.Equipment</option>
+                            <option value="3">@UIText.Tools</option>
                         </select>
                     </div>
 
                     <div class="mb-3 position-relative">
-                        <label for="assetTypeahead" class="form-label">Find Asset</label>
+                        <label for="assetTypeahead" class="form-label">
+                            @UIText.FindAsset <span class="text-danger">*</span>
+                        </label>
                         <input type="text"
                                class="form-control"
                                id="assetTypeahead"
-                               placeholder="Type asset code or description"
+                               placeholder="@UIText.TypeAssetCodeorDescription"
                                @bind="assetSearchText"
                                @bind:event="oninput"
                                autocomplete="off" />
@@ -98,8 +123,11 @@
                 <div class="row">
                     <div class="col-lg-6">
                         <div class="mb-3">
-                            <label for="maintTypeDropdown" class="form-label">Select a Maintenance Type</label>
+                            <label for="maintTypeDropdown" class="form-label">
+                                @UIText.SelectAMaintenanceType
+                            </label>
                             <select class="form-select" id="maintTypeDropdown" @bind="newRequestModel.MaintTypeId">
+                                <option value="-1">-- Select Maintenance Type --</option>
                                 @foreach (var each in MaintTypes)
                                 {
                                     <option value="@each.id">@each.strName</option>
@@ -110,8 +138,11 @@
                     </div>
                     <div class="col-lg-6">
                         <div class="mb-3">
-                            <label for="priorityDropdown" class="form-label">Select a Priority</label>
+                            <label for="priorityDropdown" class="form-label">
+                                @UIText.SelectAPriority
+                            </label>
                             <select class="form-select" id="priorityDropdown" @bind="newRequestModel.PriorityId">
+                                <option value="-1">-- Select Priority --</option>
                                 @foreach (var each in Priorities)
                                 {
                                     <option value="@each.id">@each.strName</option>
@@ -123,13 +154,15 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea class="form-control" id="description" rows="4" placeholder="Enter work request description" @bind="newRequestModel.Description"></textarea>
+                    <label for="description" class="form-label">
+                        @UIText.Description <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="description" rows="4" placeholder="@UIText.EnterWorkRequestDescription" @bind="newRequestModel.Description"></textarea>
                     <ValidationMessage For="@(() => newRequestModel.Description)" class="text-danger" />
                 </div>
 
                 <div class="mb-3">
-                    <label for="imageUpload" class="form-label">Upload Images</label>
+                    <label for="imageUpload" class="form-label">@UIText.UploadImages</label>
                     <InputFile id="imageUpload" OnChange="OnImagesSelected" multiple accept="image/*" class="form-control" />
                 </div>
 
@@ -167,10 +200,18 @@
                     </div>
                 }
 
-                <button type="submit" class="btn btn-primary w-100">Submit</button>
+                <button type="submit" class="btn btn-primary w-100">@UIText.Submit</button>
             }
 
         </EditForm>
+    </div>
+</div>
+<div class="row mt-2 mb-4">
+    <div class="col-lg-3"></div>
+    <div class="col-lg-6 text-end">
+        <button type="button" class="btn btn-outline-secondary" @onclick="ReloadPage">
+            <i class="fa-solid fa-eraser"></i> Clear Form
+        </button>
     </div>
 </div>
 
@@ -185,6 +226,7 @@
 }
 
 @code {
+    private AzureTranslatorService Translator;
     public CallFiixApi FiixAPI = new CallFiixApi();
     public Local_WRP.Data.UserDetail UserInfo = new();
     private List<Helpers.DatabaseCommon.SiteDetail> Sites = new List<Helpers.DatabaseCommon.SiteDetail>();
@@ -192,7 +234,7 @@
     private List<APIModels.Assets.FindRequestResults.Point> AssetPoints = new();
     private List<APIModels.MaintenanceType.FindRequestResults.Point> MaintTypes = new();
     private List<APIModels.Priority.FindRequestResults.Point> Priorities = new();
-    private APIModels.User.FindRequestResults.Point GuestUser = new APIModels.User.FindRequestResults.Point();
+    private APIModels.User.FindRequestResults.Point GuestUser = new APIModels.User.FindRequestResults.Point();    
 
     private List<string> UploadedImages = new();
     private List<IBrowserFile> SelectedFiles = new();
@@ -214,6 +256,7 @@
     {
         if (first)
         {
+            Translator = await TranslatorFactory.CreateAsync();
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userName", out var userName))
             {
@@ -228,6 +271,7 @@
 
                 string UserName = userName;
                 UserInfo = _db.UserDetails.FirstOrDefault(x => x.Name.ToUpper() == UserName.ToUpper());
+                UIText = await Translator.TranslateUIElements<ElementText>(UIText, UserInfo.Language);
 
                 var LimitToSite = Helpers.DatabaseCommon.CheckIfSitesAreLimited(_db);
                 if (LimitToSite.HasValue)
@@ -250,7 +294,7 @@
         await CreateNewWorkOrder();
 
         // Use SelectedSiteId as needed
-        await JS.InvokeVoidAsync("alert", $"Thank you, come again!!");
+        await JS.InvokeVoidAsync("alert", UIText.ThankYouComeAgain);
         Navigation.NavigateTo("/Requests?userName=" + UserInfo.Name);
         IsSubmitting = false;
     }
@@ -264,7 +308,7 @@
             intPriorityID = newRequestModel.PriorityId.Value,
             intSiteID = newRequestModel.SelectedAssetPoint.intSiteID,
             intWorkOrderStatusID = newRequestModel.WOStatusId.Value,
-            strDescription = newRequestModel.Description,
+            strDescription = await TranslateWODescription(),
             intRequestedByUserID = GuestUser.id,
             strNameUserGuest = UserInfo.Name
         };
@@ -272,24 +316,25 @@
         string test = JsonSerializer.Serialize(request);
 
         var responce = await FiixAPI.GetServerResponce<APIModels.WorkOrder.AddRequestResults>(request);
-        if (responce != null)
+        if (responce.Points != null)
         {
             await AddAssetToWorkOrder(responce.Points.id, newRequestModel.SelectedAssetPoint);
-            await AddImagesToWorkOrder(responce.Points.id);
-
-            _db.UserWorkOrders.Add(new Data.UserWorkOrders
-            {
-                CreatedDate = DateTime.UtcNow,
-                UserId = UserInfo.Id,
-                WorkOrderId = responce.Points.id
-            });
-
-            _db.SaveChanges();
+            await AddImagesToWorkOrder(responce.Points.id);            
         }
         else
         {
-            await JS.InvokeVoidAsync("alert", "Could not create the workorder sorry, please check your selections and API keys");
+            await JS.InvokeVoidAsync("alert", UIText.CouldNotCreateWorkOrder);
         }
+    }
+
+    private async Task<string> TranslateWODescription()
+    {
+        var tenantInfo = _db.TenantDetails.FirstOrDefault();
+        if(tenantInfo!= null && tenantInfo.Language != UserInfo.Language)
+        {
+            return await Translator.TranslateAsync(newRequestModel.Description, tenantInfo.Language);
+        }
+        return newRequestModel.Description;
     }
 
     private async Task AddAssetToWorkOrder(long WorkorderId, APIModels.Assets.FindRequestResults.Point Asset)
@@ -403,7 +448,7 @@
         if (responce != null)
         {
             MaintTypes = responce.Points.OrderBy(x => x.strName).ToList();
-            newRequestModel.MaintTypeId = MaintTypes.FirstOrDefault().id;
+            // newRequestModel.MaintTypeId = MaintTypes.FirstOrDefault().id;
         }
     }
 
@@ -417,7 +462,7 @@
         if (responce != null)
         {
             Priorities = responce.Points.OrderByDescending(x => x.intOrder).ToList();
-            newRequestModel.PriorityId = Priorities.FirstOrDefault().id;
+            // newRequestModel.PriorityId = Priorities.FirstOrDefault().id;
         }
     }
 
@@ -467,19 +512,30 @@
 
     private async Task OnImagesSelected(InputFileChangeEventArgs e)
     {
+        IsSubmitting = true;
         UploadedImages.Clear();
         SelectedFiles.Clear();
         foreach (var file in e.GetMultipleFiles())
         {
-            SelectedFiles.Add(file);
+            // Only allow image files
+            if (file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectedFiles.Add(file);
 
-            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit per image
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            var base64 = Convert.ToBase64String(ms.ToArray());
-            var imageDataUrl = $"data:{file.ContentType};base64,{base64}";
-            UploadedImages.Add(imageDataUrl);
+                using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit per image
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var base64 = Convert.ToBase64String(ms.ToArray());
+                var imageDataUrl = $"data:{file.ContentType};base64,{base64}";
+                UploadedImages.Add(imageDataUrl);
+            }
+            else
+            {
+                // Optionally notify the user about invalid file type
+                await JS.InvokeVoidAsync("alert", $"File '{file.Name}' is not a valid image and will be ignored.");
+            }
         }
+        IsSubmitting = false;
     }
 
     private async Task StartQrScan()
@@ -504,16 +560,27 @@
                 }
                 else
                 {
-                    await JS.InvokeVoidAsync("alert", "I could not find that asset, please check your QR code.  -  " + code);
+                    await JS.InvokeVoidAsync("alert", UIText.CouldNotFindQRCode + " -  " + code);
                 }
             }
         }
         else
         {
-            await JS.InvokeVoidAsync("alert", "I could not find that asset, please check your QR code.  -  " + code);
+            await JS.InvokeVoidAsync("alert", UIText.CouldNotFindQRCode + " -  " + code);
         }
 
         StateHasChanged();
+    }
+
+    private void ResetAssetSelector()
+    {
+        newRequestModel.SelectedAssetPoint = null;
+        assetSearchText = string.Empty;
+    }
+
+    private void ReloadPage()
+    {
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
 
     public class NewRequestModel
@@ -536,12 +603,46 @@
         public Action<long?> OnSiteIdChanged { get; set; }
 
         public int Kind { get; set; } = 2;
+
         [Required(ErrorMessage = "Please enter a description")]
         public string Description { get; set; }
-        public long? MaintTypeId { get; set; }
-        public long? PriorityId { get; set; }
+
+        // Default values for Maintenance Type and Priority
+        [Required(ErrorMessage = "Select a maintenance type")]
+        [Range(1, long.MaxValue, ErrorMessage = "Please select a maintenance type")]
+        public long? MaintTypeId { get; set; } = -1;
+
+        [Required(ErrorMessage = "Select a priority")]
+        [Range(1, long.MaxValue, ErrorMessage = "Please select a priority")]
+        public long? PriorityId { get; set; } = -1;
+
         public long? WOStatusId { get; set; }
+
         [Required(ErrorMessage = "Please enter and select an asset")]
         public APIModels.Assets.FindRequestResults.Point SelectedAssetPoint { get; set; }
+    }
+
+    private ElementText UIText = new();
+    public class ElementText
+    {
+        public string Closed { get; set; } = "Closed";
+        public string CouldNotCreateWorkOrder { get; set; } = "Could not create the workorder, please check your selections and API keys";
+        public string CouldNotFindQRCode { get; set; } = "I could not find that asset, please check your QR code.";
+        public string Description { get; set; } = "Description";
+        public string EnterWorkRequestDescription { get; set; } = "Enter work request description";
+        public string Equipment { get; set; } = "Equipment";
+        public string FindAsset { get; set; } = "Find Asset";
+        public string NewWorkRequest { get; set; } = "New Work Request";
+        public string SelectAssetCategory { get; set; } = "Select Asset Category";
+        public string SelectAMaintenanceType { get; set; } = "Select a Maintenance Type";
+        public string SelectAPriority { get; set; } = "Select a Priority";
+        public string ScanAssetQRCode { get; set; } = "Scan Asset QR Code";
+        public string SelectSite { get; set; } = "Select Site";
+        public string Submit { get; set; } = "Submit";
+        public string ThankYouComeAgain { get; set; } = "Thank you, come again!!";
+        public string Tools { get; set; } = "Tools";
+        public string TypeAssetCodeorDescription { get; set; } = "Type asset code or description";
+        public string UploadImages { get; set; } = "Upload Images";
+        public string WorkRequests { get; set; } = "Work Requests";
     }
 }

@@ -1,6 +1,7 @@
 ﻿@page "/Details"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.WebUtilities
+@inject AzureTranslatorServiceFactory TranslatorFactory
 
 <PageTitle>WO Details</PageTitle>
 
@@ -10,31 +11,46 @@
         <h2 class="m-2">#@WorkOrder.strCode</h2>
     </div>
 </div>
+<div class="row mb-3">
+    <div class="col-lg-3"></div>
+    <div class="col-lg-6">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-light p-2 rounded">
+                <li class="breadcrumb-item">
+                    <a href="/Requests?userName=@UserDetail?.Name">@UIText.WorkRequests</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    @UIText.WorkRequestDetails
+                </li>
+            </ol>
+        </nav>
+    </div>
+</div>
 <div class="row">
     <div class="col-lg-3"></div>
     <div class="col-lg-6">
-        <h4 class="mt-4 mb-4"><strong>Work Order</strong></h4>
+        <h4 class="mt-4 mb-4"><strong>@UIText.WorkOrder</strong></h4>
         <div class="row">
             <div class="col-lg-4">
-                <h6><strong>Item</strong></h6>
+                <h6><strong>@UIText.Item</strong></h6>
             </div>
             <div class="col-lg-8">
-                <h6><strong>Detail</strong></h6>
+                <h6><strong>@UIText.Detail</strong></h6>
             </div>
             <hr />
         </div>
 
         @if (WorkOrder.dtmDateCompleted.HasValue)
         {
-            <h4 class="m-3" style="border-left-color: #b5cf83; border-left: 6px solid #b5cf83;">Closed</h4>
+            <h4 class="m-3" style="border-left-color: #b5cf83; border-left: 6px solid #b5cf83;">@UIText.Closed</h4>
         }
         else
         {
-            <h4 class="m-3" style="border-left-color: #8c0000; border-left: 6px solid red;">Open</h4>
+            <h4 class="m-3" style="border-left-color: #8c0000; border-left: 6px solid red;">@UIText.Open</h4>
         }
         <div class="row">
             <div class="col-lg-4">
-                <h5>Completion Notes</h5>
+                <h5>@UIText.CompletionNotes</h5>
             </div>
             <div class="col-lg-8">
                 @WorkOrder.strCompletionNotes
@@ -42,7 +58,7 @@
         </div>
         <div class="row">
             <div class="col-lg-4">
-                <h5>Submitted On</h5>
+                <h5>@UIText.SubmittedOn</h5>
             </div>
             <div class="col-lg-8">
                 @((new DateTime(1970, 01, 01)).AddMilliseconds(WorkOrder.dtmDateCreated))
@@ -50,7 +66,7 @@
         </div>
         <div class="row">
             <div class="col-lg-4">
-                <h5>Last Updated</h5>
+                <h5>@UIText.LastUpdated</h5>
             </div>
             <div class="col-lg-8">
                 @((new DateTime(1970, 01, 01)).AddMilliseconds(WorkOrder.dtmDateLastModified))
@@ -58,7 +74,7 @@
         </div>
         <div class="row">
             <div class="col-lg-4">
-                <h5>Site</h5>
+                <h5>@UIText.Site</h5>
             </div>
             <div class="col-lg-8">
                 @WorkOrder.extraFields.dv_intSiteID
@@ -66,7 +82,7 @@
         </div>
         <div class="row">
             <div class="col-lg-4">
-                <h5>Asset(s)</h5>
+                <h5>@UIText.Assets</h5>
             </div>
             <div class="col-lg-8">
                 @WorkOrder.strAssets
@@ -74,7 +90,7 @@
         </div>
         <div class="row">
             <div class="col-lg-4">
-                <h5>Description</h5>
+                <h5>@UIText.Description</h5>
             </div>
             <div class="col-lg-8">
                 @WorkOrder.strDescription
@@ -82,24 +98,24 @@
         </div>
         <div class="row">
             <div class="col-lg-4">
-                <h5>Maintenance Type</h5>
+                <h5>@UIText.MaintenanceType</h5>
             </div>
             <div class="col-lg-8">
                 @WorkOrder.extraFields.dv_intMaintenanceTypeID
             </div>
         </div>
         <hr />
-        <h4 class="mt-4 mb-4"><strong>Tasks</strong></h4>
+        <h4 class="mt-4 mb-4"><strong>@UIText.Tasks</strong></h4>
         <div class="row">
             <div class="col-lg-4">
-                <h6><strong>Description</strong></h6>
+                <h6><strong>@UIText.Description</strong></h6>
             </div>
             <div class="col-lg-8">
-                <h6><strong>Completion Notes</strong></h6>                
+                <h6><strong>@UIText.CompletionNotes</strong></h6>
             </div>
             <hr />
         </div>
-        @foreach(var each in WorkOrderTasks)
+        @foreach (var each in WorkOrderTasks)
         {
             <div class="row">
                 <div class="col-lg-4">
@@ -112,27 +128,36 @@
             </div>
         }
     </div>
-    
+
 </div>
 
 @code {
+    private AzureTranslatorService Translator;
     public int woId = 0;
-    public CallFiixApi FiixAPI = new CallFiixApi();    
+    public CallFiixApi FiixAPI = new CallFiixApi();
     public List<Local_WRP.APIModels.WorkOrderTask.FindRequestResults.Point> WorkOrderTasks = new List<APIModels.WorkOrderTask.FindRequestResults.Point>();
     public Local_WRP.APIModels.WorkOrder.FindRequestResults.Point WorkOrder = new APIModels.WorkOrder.FindRequestResults.Point();
+    public Data.UserDetail UserDetail;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (first)
         {
+            Translator = await TranslatorFactory.CreateAsync();
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+            QueryHelpers.ParseQuery(uri.Query).TryGetValue("user", out var strUser);
+
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("woId", out var strWoId) && int.TryParse(strWoId, out woId))
-            {                
+            {
                 Helpers.DatabaseCommon.GetAPICreds(_db, FiixAPI);
                 if (FiixAPI.BaseUrl != "")
                 {
                     await GetWorkOrder(woId);
                     await GetWorkOrderTasks(woId);
+                    GetUserDeatils(strUser);
+                    await TranslateWorkOrders();
+                    await TranslateWorkOrderTasks();
+                    UIText = await Translator.TranslateUIElements<ElementText>(UIText, UserDetail.Language);
                 }
 
             }
@@ -140,11 +165,14 @@
         }
     }
 
+    protected void GetUserDeatils(string userNname)
+    {
+        UserDetail = _db.UserDetails.FirstOrDefault(x => x.Name.ToLower() == userNname.ToLower());
+    }
+
     protected async Task GetWorkOrderTasks(int Id)
     {
-        var userWOs = _db.UserWorkOrders.Where(x => x.Id == Id).FirstOrDefault();
-
-        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrderTask"",""filters"":[{""ql"":""intWorkOrderID= " + userWOs.WorkOrderId + @" ""}],""fields"":""*""}";
+        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrderTask"",""filters"":[{""ql"":""intWorkOrderID= " + Id + @" ""}],""fields"":""*""}";
 
         var workOrderTasks = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrderTask.FindRequestResults>(request);
         WorkOrderTasks = workOrderTasks.Points.OrderBy(x => x.intOrder).ToList();
@@ -152,12 +180,53 @@
 
     protected async Task GetWorkOrder(int Id)
     {
-        var userWOs = _db.UserWorkOrders.Where(x => x.Id == Id).FirstOrDefault();
-        
-        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" id= " + userWOs.WorkOrderId + @" ""}],""fields"":""*,dv_intMaintenanceTypeID,dv_intSiteID""}";
+        string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" id= " + Id + @" ""}],""fields"":""*,dv_intMaintenanceTypeID,dv_intSiteID""}";
 
         var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
 
         WorkOrder = workOrders.Points.FirstOrDefault();
-    }    
+    }
+
+    protected async Task TranslateWorkOrders()
+    {
+        var test = await Translator.TranslateAsync(WorkOrder.strDescription, UserDetail.Language);
+        WorkOrder.strDescription = test;
+        WorkOrder.strCompletionNotes = await Translator.TranslateAsync(WorkOrder.strCompletionNotes, UserDetail.Language);
+
+        StateHasChanged();
+    }
+
+    protected async Task TranslateWorkOrderTasks()
+    {
+        foreach (var each in WorkOrderTasks)
+        {
+            each.strDescription = await Translator.TranslateAsync(each.strDescription, UserDetail.Language);
+            each.strTaskNotesCompletion = await Translator.TranslateAsync(each.strTaskNotesCompletion, UserDetail.Language);
+        }
+
+        StateHasChanged();
+    }
+
+    private ElementText UIText = new();
+    public class ElementText
+    {
+        public string Assets { get; set; } = "Assets";
+        public string Closed { get; set; } = "Closed";
+        public string CompletionNotes { get; set; } = "Completion Notes";
+        public string Description { get; set; } = "Description";
+        public string Detail { get; set; } = "Detail";
+        public string Item { get; set; } = "Item";
+        public string LastUpdated { get; set; } = "Last Updated";
+        public string MaintenanceType { get; set; } = "Maintenance Type";
+        public string NewRequest { get; set; } = "New Request";
+        public string Open { get; set; } = "Open";
+        public string RequestedBy { get; set; } = "Requested By";
+        public string Search { get; set; } = "Search";
+        public string Site { get; set; } = "Site";
+        public string SubmittedOn { get; set; } = "Submitted On";
+        public string Tasks { get; set; } = "Tasks";
+        public string WorkOrder { get; set; } = "Work Order";
+        public string WorkRequests { get; set; } = "Work Requests";
+        public string WorkRequestDetails { get; set; } = "Work Request Details";
+    }
 }

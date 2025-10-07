@@ -42,10 +42,21 @@
             <div class="mb-3">
                 <label for="siteDropdown" class="form-label">Limit to Site</label>
                 <select class="form-select" id="siteDropdown" @bind="tenantModel.LimitToSite">
-                    <option value="-1">-- Select a Site --</option>
+                    <option value="-1">-- Enable All Sites --</option>
                     @foreach (var site in Sites)
                     {
                         <option value="@site.Id">@site.Name (@site.Code)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="languageSelect" class="form-label">Select Default Language</label>
+                <select class="form-select" id="languageSelect" @bind="tenantModel.SelectedLanguage">
+                    <option value="">-- Select Language --</option>
+                    @foreach (var lang in AzureTranslatorLanguages.SupportedLanguages)
+                    {
+                        <option value="@lang.Key">@lang.Value</option>
                     }
                 </select>
             </div>
@@ -60,6 +71,18 @@
                     }
                 </select>
                 <ValidationMessage For="@(() => tenantModel.TimeZoneId)" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="tenantModel.TranslatorKey" class="form-control" id="TranslatorKey" placeholder="Azure Translator Key" type="password" autocomplete="off" />
+                <label for="TranslatorKey">Azure Translator Key</label>
+                <ValidationMessage For="@(() => tenantModel.TranslatorKey)" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="tenantModel.TranslatorRegion" class="form-control" id="TranslatorRegion" placeholder="Azure Translator Region" autocomplete="off" />
+                <label for="TranslatorRegion">Azure Translator Region</label>
+                <ValidationMessage For="@(() => tenantModel.TranslatorRegion)" class="text-danger" />
             </div>
 
             <button type="button" @onclick="HandleValidSubmit" class="btn btn-primary w-100">Save</button>
@@ -87,7 +110,11 @@
                     AppKey = currentDetails.AppKey,
                     SecretKey = currentDetails.SecretKey,
                     TenantName = currentDetails.TenantName,
-                    TimeZoneId = currentDetails.TimeZoneId
+                    TimeZoneId = currentDetails.TimeZoneId,
+                    SelectedLanguage = currentDetails.Language,
+                    TranslatorKey = currentDetails.AzureTranslatorKey,
+                    TranslatorRegion = currentDetails.AzureTranslatorRegion
+
                 };
 
                 FiixAPI.AppKey = tenantModel.AppKey;
@@ -121,7 +148,10 @@
                 SecretKey = tenantModel.SecretKey,
                 TenantName = tenantModel.TenantName,
                 LimitToSite = tenantModel.LimitToSite == -1 ? null : tenantModel.LimitToSite,
-                TimeZoneId = tenantModel.TimeZoneId
+                TimeZoneId = tenantModel.TimeZoneId,
+                Language = tenantModel.SelectedLanguage,
+                AzureTranslatorKey = tenantModel.TranslatorKey,
+                AzureTranslatorRegion = tenantModel.TranslatorRegion
             });
             _db.SaveChanges();
 
@@ -147,10 +177,14 @@
         [Required(ErrorMessage = "Tenant Name is required")]
         public string TenantName { get; set; } = string.Empty;
 
-        public long? LimitToSite { get; set; }        
+        public long? LimitToSite { get; set; }
 
         public string TimeZoneId { get; set; }
+
+        public string SelectedLanguage { get; set; }
+        public string TranslatorKey { get; set; }
+        public string TranslatorRegion { get; set; }
     }
 
-    
+
 }

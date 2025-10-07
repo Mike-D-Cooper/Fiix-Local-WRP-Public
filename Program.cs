@@ -52,6 +52,10 @@ namespace Local_WRP
 
             builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+            builder.Services.AddHttpClient();            
+
+            builder.Services.AddScoped<AzureTranslatorServiceFactory>();
+
             var app = builder.Build();
 
             // Apply migrations automatically

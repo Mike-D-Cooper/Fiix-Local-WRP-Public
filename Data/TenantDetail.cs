@@ -9,5 +9,8 @@
         public string TenantName { get; set; }
         public long? LimitToSite { get; set; }
         public string TimeZoneId { get; set; }
+        public string Language { get; set; }
+        public string AzureTranslatorKey { get; set; }
+        public string AzureTranslatorRegion { get; set; }
     }
 }

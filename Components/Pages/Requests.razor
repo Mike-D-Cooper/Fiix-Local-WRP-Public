@@ -1,6 +1,7 @@
 ﻿@page "/Requests"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.WebUtilities
+@inject AzureTranslatorServiceFactory TranslatorFactory
 
 <PageTitle>Requests</PageTitle>
 <div class="row">
@@ -8,101 +9,145 @@
     <div class="col-lg-6">
         <div class="row">
             <div class="col-lg-4">
-                <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="Search" aria-label="Search" aria-describedby="button-search">
-                    <button class="btn btn-outline-secondary" type="button" id="button-search">
-                        <i class="fa-solid fa-search"></i>
-                    </button>
-                </div>
+                <label for="languageSelctor" class="form-label">@UIText.SelectYourLanguage</label>
+                <select id="languageSelctor" class="form-select" value="@SelectedLanguage" @onchange="OnLanguageChanged">
+                    <option value="">-- Select Language --</option>
+                    @foreach (var lang in AzureTranslatorLanguages.SupportedLanguages)
+                    {
+                        <option value="@lang.Key">@lang.Value</option>
+                    }
+                </select>
             </div>
-            <div class="col-lg-4"></div>
+            <div class="col-lg-4">
+                @if (WorkOrders.Count() > 0)
+                {
+                    <label for="search" class="form-label">@UIText.Search</label>
+                    <div class="input-group mb-3">
+                        <input id="search" type="text" class="form-control" placeholder="@UIText.Search" aria-label="Search" aria-describedby="button-search" @bind="SearchText">
+                        <button class="btn btn-outline-secondary" type="button" id="button-search" @onclick="FilterWorkOrders">
+                            <i class="fa-solid fa-search"></i>
+                        </button>
+                    </div>
+                }
+            </div>
             <div class="col-lg-4 text-end">
-                <a class="btn btn-outline-dark" href="/CreateNewRequest?userName=@UserName"><i class="fa-solid fa-circle-plus"></i> New Request </a>
+                <a class="btn btn-outline-dark" href="/CreateNewRequest?userName=@UserName"><i class="fa-solid fa-circle-plus"></i> @UIText.NewRequest </a>
             </div>
         </div>
-        @foreach (var each in WorkOrders)
+        @if (WorkOrders.Count() == 0)
         {
-            if (each.dtmDateCompleted.HasValue)
+            <a class="btn btn-success w-100 mt-5" href="/CreateNewRequest?userName=@UserName"><i class="fa-solid fa-circle-plus"></i> @UIText.CreateYourFirstRequest </a>
+        }
+        else
+        {
+            @foreach (var each in WorkOrders)
             {
-                <div class="row custom-row green-left mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
-                    <div class="col-12">
-                        <div class="row">
-                            <div class="col-lg-4">
-                                <h5>Closed</h5>
-                                <p>@each.strAssets</p>
+                if (each.dtmDateCompleted.HasValue)
+                {
+                    <div class="row custom-row green-left mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.id)">
+                        <div class="col-12">
+                            <div class="row">
+                                <div class="col-lg-4">
+                                    <h5>@UIText.Closed</h5>
+                                    <p>@each.strAssets</p>
+                                </div>
+                                <div class="col-lg-8">
+                                    <strong>@UIText.Description</strong>
+                                    <p>@each.strDescription</p>
+                                </div>
                             </div>
-                            <div class="col-lg-8">
-                                <strong>Description</strong>
-                                <p>@each.strDescription</p>
-                            </div>
-                        </div>
-                        <hr />
-                        <div class="row">
-                            <div class="col-lg-2">
-                                <strong>#@each.strCode</strong>
-                            </div>
-                            <div class="col-lg-2"></div>
-                            <div class="col-lg-5">
-                                Submitted On: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
-                            </div>
-                            <div class="col-lg-3">
-                                Requester: @UserName
+                            <hr />
+                            <div class="row">
+                                <div class="col-lg-2">
+                                    <strong>#@each.strCode</strong>
+                                </div>
+                                <div class="col-lg-2"></div>
+                                <div class="col-lg-5">
+                                    @UIText.SubmittedOn: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
+                                </div>
+                                <div class="col-lg-3">
+                                    @UIText.RequestedBy: @UserName
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            }
-            else
-            {
-                <div class="row custom-row green-red mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.LocalWOId)">
-                    <div class="col-12">
-                        <div class="row">
-                            <div class="col-lg-4">
-                                <h5>Open</h5>
-                                <p>@each.strAssets</p>
+                }
+                else
+                {
+                    <div class="row custom-row green-red mb-4" style="cursor: pointer;" @onclick="e => NavToDeatils(each.id)">
+                        <div class="col-12">
+                            <div class="row">
+                                <div class="col-lg-4">
+                                    <h5>@UIText.Open</h5>
+                                    <p>@each.strAssets</p>
+                                </div>
+                                <div class="col-lg-8">
+                                    <strong>@UIText.Description</strong>
+                                    <p>@each.strDescription</p>
+                                </div>
                             </div>
-                            <div class="col-lg-8">
-                                <strong>Description</strong>
-                                <p>@each.strDescription</p>
-                            </div>
-                        </div>
-                        <hr />
-                        <div class="row">
-                            <div class="col-lg-2">
-                                <strong>#@each.strCode</strong>
-                            </div>
-                            <div class="col-lg-2"></div>
-                            <div class="col-lg-5">
-                                Submitted On: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
-                            </div>
-                            <div class="col-lg-3">
-                                Requester: @UserName
+                            <hr />
+                            <div class="row">
+                                <div class="col-lg-2">
+                                    <strong>#@each.strCode</strong>
+                                </div>
+                                <div class="col-lg-2"></div>
+                                <div class="col-lg-5">
+                                    @UIText.SubmittedOn: @((new DateTime(1970, 01, 01)).AddMilliseconds(each.dtmDateCreated))
+                                </div>
+                                <div class="col-lg-3">
+                                    @UIText.RequestedBy: @UserName
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                }
             }
         }
     </div>
 </div>
 
 @code {
+    private AzureTranslatorService Translator;
+
+    public Data.TenantDetail TenantDetail { get; set; }
     public string UserName { get; set; }
+    private Data.UserDetail SelectedUser = new();
     public CallFiixApi FiixAPI = new CallFiixApi();
+    public List<Local_WRP.APIModels.WorkOrder.FindRequestResults.Point> WorkOrdersUnfiltered = new List<APIModels.WorkOrder.FindRequestResults.Point>();
     public List<Local_WRP.APIModels.WorkOrder.FindRequestResults.Point> WorkOrders = new List<APIModels.WorkOrder.FindRequestResults.Point>();
+    private string SelectedLanguage;
+    private string SearchText;
+
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (first)
         {
+            Translator = await TranslatorFactory.CreateAsync();
+            TenantDetail = _db.TenantDetails.FirstOrDefault();
+
             var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("userName", out var userName))
             {
-                UserName = userName;
-                var usr = _db.UserDetails.FirstOrDefault(x => x.Name == UserName);
+                UserName = userName.ToString().Trim();                
+                var usr = CheckAndCreateUser(userName);
+                if (usr != null)
+                {
+                    SelectedUser = usr;
+                    SelectedLanguage = usr.Language; // Preselect user's language
+                    if (usr.Language != null)
+                    {
+                        usr.Language = "en";
+                        _db.UserDetails.Update(usr);
+                        _db.SaveChanges();
+                        UIText = await Translator.TranslateUIElements<ElementText>(UIText, SelectedLanguage);
+                    }
+                }
+
                 Helpers.DatabaseCommon.GetAPICreds(_db, FiixAPI);
                 if (usr != null && FiixAPI.BaseUrl != "")
                 {
-                    await GetWorkOrders(usr.Id);
+                    await GetWorkOrders(usr.Name);
                 }
 
             }
@@ -110,30 +155,161 @@
         }
     }
 
-    protected async Task GetWorkOrders(int userId)
+    protected Data.UserDetail CheckAndCreateUser(string userName)
     {
-        var userWOs = _db.UserWorkOrders.Where(x => x.UserId == userId).ToList();
-        if(userWOs!= null && userWOs.Count() > 0)
+        var newUserDetail = new Data.UserDetail();
+        var dbUser = _db.UserDetails.FirstOrDefault(x => x.Name == UserName);
+        if (dbUser == null)
         {
-            var workorderIdList = string.Join(" or ", userWOs.Select(x => "id=" + x.WorkOrderId.ToString()));
-            string request = @"{""_maCn"":""FindRequest"",""clientVersion"":{""major"":2,""minor"":8,""patch"":1},""className"":""WorkOrder"",""filters"":[{""ql"":"" " + workorderIdList + @" ""}],""fields"":""*""}";
-
-            var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
-            @foreach (var each in userWOs)
+            _db.UserDetails.Add(new Data.UserDetail
             {
-                var wo = workOrders.Points.Where(x => x.id == each.WorkOrderId).FirstOrDefault();
-                if (wo != null)
+                CreatedDateUTC = DateTime.UtcNow,
+                Language = "en",
+                Name = userName
+            });
+            _db.SaveChanges();
+            return CheckAndCreateUser(userName);
+        }
+        return dbUser;
+    }
+
+    private async Task OnLanguageChanged(ChangeEventArgs e)
+    {
+        SelectedLanguage = e.Value?.ToString();
+        var usr = _db.UserDetails.FirstOrDefault(x => x.Name == UserName);
+        if (usr != null)
+        {
+            usr.Language = SelectedLanguage;
+            _db.UserDetails.Update(usr);
+            await _db.SaveChangesAsync();
+
+            await GetWorkOrders(SelectedUser.Name);
+            UIText = await Translator.TranslateUIElements<ElementText>(UIText, SelectedLanguage);
+        }
+    }
+
+    protected async Task GetWorkOrders(string userName)
+    {
+        string nameFilter = BuildJsonFilter(userName);
+        nameFilter = nameFilter.Substring(1, nameFilter.Length - 2);
+
+        string request = $@"{{""_maCn"":""FindRequest"",""clientVersion"":{{""major"":2,""minor"":8,""patch"":1}},""className"":""WorkOrder"",{nameFilter},""fields"":""*"" , ""orderBy"": ""id DESC"" , ""maxObjects"": 250}}";
+        var workOrders = await FiixAPI.GetServerResponce<Local_WRP.APIModels.WorkOrder.FindRequestResults>(request);
+        WorkOrdersUnfiltered = new();
+        if(workOrders != null)
+        {
+            //WorkOrders = workOrders.Points.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(250).ToList();
+            //WorkOrders.AddRange(workOrders.Points.OrderBy(x => !x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(250).ToList());
+            WorkOrders = workOrders.Points.OrderByDescending(x => x.id).ToList();
+            WorkOrdersUnfiltered = WorkOrders;
+        }
+
+        if (SelectedLanguage != TenantDetail.Language)
+        {
+            await TranslateWorkOrders();
+        }
+
+    }
+
+    public string BuildJsonFilter(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "{\"filters\":[]}";
+
+        var variations = new List<string>();
+        GenerateRecursive(name.ToCharArray(), 0, "", variations);
+
+        string ql = string.Join(" or ", new string[variations.Count].Select(_ => "strNameUserGuest = ?"));
+        var filter = new
+        {
+            filters = new[]
+            {
+                new
                 {
-                    wo.LocalWOId = each.Id;
+                    ql,
+                    parameters = variations
                 }
             }
-            WorkOrders = workOrders.Points.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(50).ToList();
+        };
+
+        return JsonSerializer.Serialize(filter, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static void GenerateRecursive(char[] chars, int index, string current, List<string> results)
+    {
+        if (index == chars.Length)
+        {
+            results.Add(current);
+            return;
         }
-        
+
+        char c = chars[index];
+        if (char.IsLetter(c))
+        {
+            GenerateRecursive(chars, index + 1, current + char.ToLower(c), results);
+            GenerateRecursive(chars, index + 1, current + char.ToUpper(c), results);
+        }
+        else
+        {
+            GenerateRecursive(chars, index + 1, current + c, results);
+        }
+    }
+
+
+
+    protected async Task TranslateWorkOrders()
+    {
+        foreach (var each in WorkOrders)
+        {
+            each.strDescription = await Translator.TranslateAsync(each.strDescription, SelectedLanguage);
+        }
+
+        StateHasChanged();
     }
 
     protected void NavToDeatils(int Id)
     {
-        Navigation.NavigateTo("/Details?woId=" + Id);
+        Navigation.NavigateTo("/Details?woId=" + Id + "&user=" + SelectedUser.Name);
+    }
+
+    protected void FilterWorkOrders()
+    {
+        if (SearchText != null && SearchText.Trim() != "")
+        {
+            var WorkOrdersAssetCode = WorkOrdersUnfiltered
+                .Where(x => x.strAssetIds != null && x.strAssetIds.ToLower().Contains(SearchText.ToLower()))
+                .ToList();
+            var WorkOrdersAssetName = WorkOrdersUnfiltered
+                .Where(x => x.strAssets != null && x.strAssets.ToLower().Contains(SearchText.ToLower()))
+                .ToList();
+            var WorkOrdersDescription = WorkOrdersUnfiltered
+                .Where(x => x.strDescription != null && x.strDescription.ToLower().Contains(SearchText.ToLower()))
+                .ToList();
+
+            WorkOrders = new List<APIModels.WorkOrder.FindRequestResults.Point>();
+            WorkOrders.AddRange(WorkOrdersAssetCode);
+            WorkOrders.AddRange(WorkOrdersAssetName);
+            WorkOrders.AddRange(WorkOrdersDescription);
+            WorkOrders = WorkOrders.OrderBy(x => x.dtmDateCompleted.HasValue).ThenByDescending(x => x.dtmDateCreated).Take(50).ToList();
+        }
+        else
+        {
+            WorkOrders = WorkOrdersUnfiltered;
+        }
+
+    }
+
+    private ElementText UIText = new();
+    public class ElementText
+    {
+        public string Closed { get; set; } = "Closed";
+        public string CreateYourFirstRequest { get; set; } = "Create Your First Work Request";
+        public string Description { get; set; } = "Description";
+        public string NewRequest { get; set; } = "New Request";
+        public string Open { get; set; } = "Open";
+        public string RequestedBy { get; set; } = "Requested By";
+        public string Search { get; set; } = "Search For Work Orders";
+        public string SelectYourLanguage { get; set; } = "Select Your Language";
+        public string SubmittedOn { get; set; } = "Submitted On";
     }
 }
