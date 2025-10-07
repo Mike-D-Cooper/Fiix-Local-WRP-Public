@@ -73,7 +73,12 @@ The app will start and be accessible on the configured port (default is 5000 for
 
 Alternatively, you can run the app using the .NET CLI:
 
-This allows hosting on other platforms that support .NET 9.
+This allows hosting on other platforms that support .NET 9. In a command 
+terminal, navigate to the project folder and run:
+
+```sh
+dotnet run --project Local-WRP.csproj
+```
 
 ---
 
